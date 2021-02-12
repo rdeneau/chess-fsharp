@@ -24,19 +24,29 @@ let ``Reject no move`` () =
 
 [<Fact>]
 let ``Reject invalid piece`` () =
-  let act () = emptyGame () |> add "X" "e2" |> ignore
+  let act () = emptyGame () |> add '⛃' "e2" |> ignore
   act |> shouldFail
 
 [<Fact>]
 let ``Reject no piece at the given coordinate`` () =
-  let game = emptyGame () |> add "♙" "e2"
+  let game = emptyGame () |> add '♙' "e2"
   let result = game |> move "c3" "c4"
   result =! Error "no piece at c3"
 
 [<Fact>]
-let ``Move piece to the given destination square`` () =
-  let game = emptyGame () |> add "♙" "e2"
-  let result = game |> move "e2" "e4"
-  result =! Ok (emptyGame () |> add "♙" "e4")
+let ``Reject moving a piece of a player for which it's not the turn to play`` () =
+  let checkWith turn piece destination expectedError =
+    let game = { emptyGame () with Turn = turn }
+               |> add '♙' "e2" // White
+               |> add '♟' "e7" // Black
+    let result = game |> move piece destination
+    result =! Error expectedError
 
-// TODO: reject / turn
+  checkWith White "e7" "e5" "not yet Black's turn"
+  checkWith Black "e2" "e4" "not yet White's turn"
+
+[<Fact>]
+let ``Move piece to the given destination square`` () =
+  let game = emptyGame () |> add '♙' "e2"
+  let result = game |> move "e2" "e4"
+  result =! Ok (emptyGame () |> add '♙' "e4")

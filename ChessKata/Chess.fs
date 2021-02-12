@@ -9,24 +9,24 @@ type SquareNotation = string // E.g. "a1"
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
 type Color = Black | White
 type Piece = King | Queen | Rook | Bishop | Knight | Pawn
-type PieceSymbol = string
+type PieceSymbol = char
 type Game = { Board: Map<Square, Color * Piece>; Turn: Color }
 
 module Piece =
   let parse (piece: PieceSymbol) =
     match piece with
-    | "♔" -> White, King
-    | "♕" -> White, Queen
-    | "♖" -> White, Rook
-    | "♗" -> White, Bishop
-    | "♘" -> White, Knight
-    | "♙" -> White, Pawn
-    | "♚" -> Black, King
-    | "♛" -> Black, Queen
-    | "♜" -> Black, Rook
-    | "♝" -> Black, Bishop
-    | "♞" -> Black, Knight
-    | "♟︎" -> Black, Pawn
+    | '♔' -> White, King
+    | '♕' -> White, Queen
+    | '♖' -> White, Rook
+    | '♗' -> White, Bishop
+    | '♘' -> White, Knight
+    | '♙' -> White, Pawn
+    | '♚' -> Black, King
+    | '♛' -> Black, Queen
+    | '♜' -> Black, Rook
+    | '♝' -> Black, Bishop
+    | '♞' -> Black, Knight
+    | '♟' -> Black, Pawn
     | s -> failwith $"invalid piece {s}"
 
 module Square =
@@ -53,7 +53,10 @@ let move (pieceLocation: SquareNotation) (target: SquareNotation) (game: Game) :
     match game.Board |> Map.tryFind pieceSquare with
     | None -> Error $"no piece at {pieceLocation}"
     | Some (color, piece) ->
-      let board = game.Board
-                  |> Map.remove pieceSquare
-                  |> Map.add targetSquare (color, piece)
-      Ok { game with Board = board }
+      if game.Turn <> color then
+        Error $"not yet {color}'s turn"
+      else
+        let board = game.Board
+                    |> Map.remove pieceSquare
+                    |> Map.add targetSquare (color, piece)
+        Ok { game with Board = board }
