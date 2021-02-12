@@ -1,6 +1,5 @@
 module Chess
 
-open FSharpPlus
 open Helpers
 open System
 
