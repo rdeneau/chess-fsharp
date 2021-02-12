@@ -23,13 +23,20 @@ let ``Reject no move`` () =
   result =! Error "no move"
 
 [<Fact>]
+let ``Reject invalid piece`` () =
+  let act () = emptyGame () |> add "X" "e2" |> ignore
+  act |> shouldFail
+
+[<Fact>]
 let ``Reject no piece at the given coordinate`` () =
   let game = emptyGame () |> add "♙" "e2"
   let result = game |> move "c3" "c4"
   result =! Error "no piece at c3"
 
 [<Fact>]
-let ``Move piece to the given coordinate`` () =
+let ``Move piece to the given destination square`` () =
   let game = emptyGame () |> add "♙" "e2"
   let result = game |> move "e2" "e4"
   result =! Ok (emptyGame () |> add "♙" "e4")
+
+// TODO: reject / turn

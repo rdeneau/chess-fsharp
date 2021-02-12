@@ -44,12 +44,16 @@ let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
   let board = game.Board |> Map.add (square |> Square.parse) (piece |> Piece.parse)
   { game with Board = board }
 
-let move (piece: SquareNotation) (target: SquareNotation) (game: Game) : Result<Game, string> =
-  let pieceSquare  = Square.parse piece
+let move (pieceLocation: SquareNotation) (target: SquareNotation) (game: Game) : Result<Game, string> =
+  let pieceSquare  = Square.parse pieceLocation
   let targetSquare = Square.parse target
   if pieceSquare = targetSquare then
     Error "no move"
-  elif true then
-    Error $"no piece at {piece}"
   else
-    Ok game
+    match game.Board |> Map.tryFind pieceSquare with
+    | None -> Error $"no piece at {pieceLocation}"
+    | Some (color, piece) ->
+      let board = game.Board
+                  |> Map.remove pieceSquare
+                  |> Map.add targetSquare (color, piece)
+      Ok { game with Board = board }
