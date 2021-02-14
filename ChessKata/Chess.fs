@@ -58,20 +58,28 @@ let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
   { game with Board = board }
 
 let computeMove startSquare endSquare color =
-  match int (endSquare.File - startSquare.File),
-        int (endSquare.Rank - startSquare.Rank) with
-  | 0,  1 when color = White -> Forward
-  | 0, -1 when color = Black -> Forward
-  | 0,  2 when color = White && startSquare.Rank = Rank._2 -> Forward
-  | 0, -2 when color = Black && startSquare.Rank = Rank._7 -> Forward
-  | 0, _ -> Rectilinear
-  | _, 0 -> Rectilinear
-  | file, rank when abs file = abs rank -> Diagonal (abs file)
-  | file, rank when abs file + abs rank = 3 && abs (file - rank) = 1 -> Jump
-  | _ -> Other
+  let file = int (endSquare.File - startSquare.File)
+  let rank = int (endSquare.Rank - startSquare.Rank)
+
+  let isForward =
+    match file, rank, color, startSquare.Rank with
+    | 0,  1, White, _ -> true
+    | 0, -1, Black, _ -> true
+    | 0,  2, White, Rank._2 -> true
+    | 0, -2, Black, Rank._7 -> true
+    | _ -> false
+
+  if isForward then
+    Forward
+  else
+    match abs file, abs rank with
+    | 0, _ -> Rectilinear
+    | _, 0 -> Rectilinear
+    | f, r when f = r -> Diagonal f
+    | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
+    | _ -> Other
 
 let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
-
   let tryFindPieceAt square = game.Board |> Map.tryFind square
 
   let checkSquaresDistinct =

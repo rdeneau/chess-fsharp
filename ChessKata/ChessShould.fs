@@ -66,7 +66,7 @@ let ``Reject moving white pawn at e2, e3 or e4 to an empty square not reachable`
      )
 
 [<Fact>]
-let ``Reject moving black pawn at e2, e3 or e4 to an empty square not reachable`` () =
+let ``Reject moving black pawn at e2, e3 or e4 to an empty square not reachable forward`` () =
   Map.empty
   |> Map.add ("e7": SquareNotation) (allSquareNotations |> List.except ["e7";"e6";"e5"])
   |> Map.add ("e6": SquareNotation) (allSquareNotations |> List.except ["e6";"e5"])
@@ -80,22 +80,49 @@ let ``Reject moving black pawn at e2, e3 or e4 to an empty square not reachable`
        )
      )
 
+let testPieceMove pieceSymbol pieceSquare (reachableSquaresSketch: string) =
+  let reachableSquares = split reachableSquaresSketch |> List.except ["xx"]
+  reachableSquares
+  |> List.iter (fun targetSquare ->
+       let game = emptyGame |> add pieceSymbol pieceSquare
+       let result = game |> move pieceSquare targetSquare
+       result =! Ok (emptyGame |> add pieceSymbol targetSquare) )
+
+  let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
+  notReachableSquares
+  |> List.iter (fun targetSquare ->
+       let game = emptyGame |> add pieceSymbol pieceSquare
+       let result = game |> move pieceSquare targetSquare
+       result =! Error "move not allowed" )
+
 [<Fact>]
-let ``Reject moving knight to an empty square not reachable`` () =
-  Map.empty
-  |> Map.add ("d5": SquareNotation) (allSquareNotations |> List.except (split
+let ``Reject moving knight to an empty square not reachable by jump`` () =
+  testPieceMove '♘' "d5"
      @"  ;c7;  ;e7;  ;
       ;b6;  ;  ;  ;f6;
-      ;  ;  ;d5;  ;  ;
+      ;  ;  ;xx;  ;  ;
       ;b4;  ;  ;  ;f4;
-      ;  ;c3;  ;e3;  ;" ))
-  |> Map.add ("a1": SquareNotation) (allSquareNotations |> List.except (split
+      ;  ;c3;  ;e3;  ;"
+  testPieceMove '♘' "a1"
      @"  ;c2;  ;
       ;  ;  ;b3;
-      ;a1;  ;  ;" ))
+      ;xx;  ;  ;"
+
+[<Fact>]
+let ``Reject moving bishop to an empty square not in diagonal`` () =
+  Map.empty
+  |> Map.add ("d4": SquareNotation) (allSquareNotations |> List.except (split
+     @"  ;  ;  ;  ;  ;  ;  ;h8;
+      ;a7;  ;  ;  ;  ;  ;g7;  ;
+      ;  ;b6;  ;  ;  ;f6;  ;  ;
+      ;  ;  ;c5;  ;e5;  ;  ;  ;
+      ;  ;  ;  ;d4;  ;  ;  ;  ;
+      ;  ;  ;c3;  ;e3;  ;  ;  ;
+      ;  ;b2;  ;  ;  ;f2;  ;  ;
+      ;a1;  ;  ;  ;  ;  ;g1;  ;" ))
   |> Map.iter (fun pawnSquare notReachableSquares ->
        notReachableSquares |> List.iter (fun targetSquare ->
-         let game = emptyGame |> add '♘' pawnSquare
+         let game = emptyGame |> add '♗' pawnSquare
          let result = game |> move pawnSquare targetSquare
          result =! Error "move not allowed"
        )
