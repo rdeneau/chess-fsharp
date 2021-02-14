@@ -116,6 +116,18 @@ let ``Reject moving rook to an empty square not rectilinear`` () =
       ;  ;  ;  ;d2;  ;  ;  ;  ;
       ;  ;  ;  ;d1;  ;  ;  ;  ;"
 
+[<Fact>]
+let ``Reject moving queen to an empty square not rectilinear`` () =
+  testPieceMove '♕' "d4"
+     @"  ;  ;  ;d8;  ;  ;  ;h8;
+      ;a7;  ;  ;d7;  ;  ;g7;  ;
+      ;  ;b6;  ;d6;  ;f6;  ;  ;
+      ;  ;  ;c5;d5;e5;  ;  ;  ;
+      ;a4;b4;c4;xx;e4;f4;g4;h4;
+      ;  ;  ;c3;d3;e3;  ;  ;  ;
+      ;  ;b2;  ;d2;  ;f2;  ;  ;
+      ;a1;  ;  ;d1;  ;  ;g1;  ;"
+
 [<Fact(Skip = "TODO")>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
   "TODO"
