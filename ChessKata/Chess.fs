@@ -1,5 +1,6 @@
 module Chess
 
+open FSharpPlus
 open Helpers
 open System
 
@@ -9,26 +10,27 @@ type SquareNotation = string // E.g. "a1"
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
 type Color = Black | White
 type Piece = King | Queen | Rook | Bishop | Knight | Pawn
+type ColoredPiece = { Color: Color; Piece: Piece }
 type PieceSymbol = char
-type Game = { Board: Map<Square, Color * Piece>; Turn: Color }
+type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 let emptyGame = { Board = Map.empty; Turn = White }
 
-module Piece =
-  let parse (piece: PieceSymbol) =
+module ColoredPiece =
+  let parse (piece: PieceSymbol) : ColoredPiece =
     match piece with
-    | '♔' -> White, King
-    | '♕' -> White, Queen
-    | '♖' -> White, Rook
-    | '♗' -> White, Bishop
-    | '♘' -> White, Knight
-    | '♙' -> White, Pawn
-    | '♚' -> Black, King
-    | '♛' -> Black, Queen
-    | '♜' -> Black, Rook
-    | '♝' -> Black, Bishop
-    | '♞' -> Black, Knight
-    | '♟' -> Black, Pawn
+    | '♔' -> { Color = White; Piece = King }
+    | '♕' -> { Color = White; Piece = Queen }
+    | '♖' -> { Color = White; Piece = Rook }
+    | '♗' -> { Color = White; Piece = Bishop }
+    | '♘' -> { Color = White; Piece = Knight }
+    | '♙' -> { Color = White; Piece = Pawn }
+    | '♚' -> { Color = Black; Piece = King }
+    | '♛' -> { Color = Black; Piece = Queen }
+    | '♜' -> { Color = Black; Piece = Rook }
+    | '♝' -> { Color = Black; Piece = Bishop }
+    | '♞' -> { Color = Black; Piece = Knight }
+    | '♟' -> { Color = Black; Piece = Pawn }
     | s -> failwith $"invalid piece {s}"
 
 module Square =
@@ -43,22 +45,35 @@ module Square =
     | _ -> failwith "invalid coordinate"
 
 let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
-  let board = game.Board |> Map.add (square |> Square.parse) (piece |> Piece.parse)
+  let board = game.Board |> Map.add (square |> Square.parse) (piece |> ColoredPiece.parse)
   { game with Board = board }
 
-let move (pieceLocation: SquareNotation) (target: SquareNotation) (game: Game) : Result<Game, string> =
-  let pieceSquare  = Square.parse pieceLocation
-  let targetSquare = Square.parse target
-  if pieceSquare = targetSquare then
-    Error "no move"
-  else
-    match game.Board |> Map.tryFind pieceSquare with
-    | None -> Error $"no piece at {pieceLocation}"
-    | Some (color, piece) ->
-      if game.Turn <> color then
-        Error $"not yet {color}'s turn"
-      else
-        let board = game.Board
-                    |> Map.remove pieceSquare
-                    |> Map.add targetSquare (color, piece)
-        Ok { game with Board = board }
+let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
+
+  let tryFindPieceAt square = game.Board |> Map.tryFind square
+
+  let checkSquaresDistinct =
+    let pieceSquare  = Square.parse pieceLocation
+    let targetSquare = Square.parse targetLocation
+    if pieceSquare = targetSquare then
+      Error "no move"
+    else
+      Ok (pieceSquare, targetSquare)
+
+  let checkTurnToPlay piece =
+    if game.Turn <> piece.Color then
+      Error $"not yet {piece.Color}'s turn"
+    else
+      Ok piece
+
+  monad' {
+    let! (pieceSquare, targetSquare) = checkSquaresDistinct
+    let! movedPiece =
+      tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
+      >>= checkTurnToPlay
+    let board =
+      game.Board
+      |> Map.remove pieceSquare
+      |> Map.add targetSquare movedPiece
+    return { game with Board = board }
+  }
