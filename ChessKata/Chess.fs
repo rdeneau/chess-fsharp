@@ -12,6 +12,8 @@ type Piece = King | Queen | Rook | Bishop | Knight | Pawn
 type PieceSymbol = char
 type Game = { Board: Map<Square, Color * Piece>; Turn: Color }
 
+let emptyGame = { Board = Map.empty; Turn = White }
+
 module Piece =
   let parse (piece: PieceSymbol) =
     match piece with
