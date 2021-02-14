@@ -100,6 +100,7 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
     match piece, move with
     | Pawn, Forward
     | Knight, Jump
+    | Bishop, Diagonal _
       -> Ok ()
     // TODO: other pieces
     | _ -> Error "move not allowed"
