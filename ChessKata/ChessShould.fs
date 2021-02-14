@@ -147,3 +147,8 @@ let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
 [<Fact(Skip = "TODO")>]
 let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
   "TODO"
+
+// TODO: Pawn blocked ahead cannot move
+// TODO: Knight can jump
+// TODO: Bishop, Rook, Queen, King blocked before destination cannot move
+// TODO: Knight, Bishop, Rook, Queen, King capturing adversary piece
