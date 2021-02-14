@@ -6,12 +6,6 @@ open FsUnit
 open Swensen.Unquote
 open Xunit
 
-let split (squares: string) : SquareNotation list =
-  squares.Split(';')
-  |> Array.toList
-  |> List.map (fun s -> s.Trim())
-  |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s))
-
 [<Fact>]
 let ``Reject invalid coordinate`` () =
   raises<exn> <@ emptyGame |> move "xx" "a1" @>
@@ -49,6 +43,12 @@ let ``Move piece to the destination square given it's reachable and empty`` () =
   let game = emptyGame |> add '♙' "e2"
   let result = game |> move "e2" "e4"
   result =! Ok (emptyGame |> add '♙' "e4")
+
+let split (squaresSketch: string) : SquareNotation list =
+  squaresSketch.Split(';')
+  |> Array.toList
+  |> List.map (fun s -> s.Trim())
+  |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s))
 
 let testPieceMove pieceSymbol pieceSquare (reachableSquaresSketch: string) =
   let { Color = color } = ColoredPiece.parse pieceSymbol
@@ -117,7 +117,7 @@ let ``Reject moving rook to an empty square not rectilinear`` () =
       ;  ;  ;  ;d1;  ;  ;  ;  ;"
 
 [<Fact>]
-let ``Reject moving queen to an empty square not rectilinear`` () =
+let ``Reject moving queen to an empty square not reachable`` () =
   testPieceMove '♕' "d4"
      @"  ;  ;  ;d8;  ;  ;  ;h8;
       ;a7;  ;  ;d7;  ;  ;g7;  ;
@@ -127,6 +127,18 @@ let ``Reject moving queen to an empty square not rectilinear`` () =
       ;  ;  ;c3;d3;e3;  ;  ;  ;
       ;  ;b2;  ;d2;  ;f2;  ;  ;
       ;a1;  ;  ;d1;  ;  ;g1;  ;"
+
+[<Fact>]
+let ``Reject moving king to an empty square adjacent`` () =
+  testPieceMove '♔' "f5"
+     @"  ;  ;  ;  ;  ;  ;  ;  ;
+      ;  ;  ;  ;  ;  ;  ;  ;  ;
+      ;  ;  ;  ;  ;e6;f6;g6;  ;
+      ;  ;  ;  ;  ;e5;xx;g5;  ;
+      ;  ;  ;  ;  ;e4;f4;g4;  ;
+      ;  ;  ;  ;  ;  ;  ;  ;  ;
+      ;  ;  ;  ;  ;  ;  ;  ;  ;
+      ;  ;  ;  ;  ;  ;  ;  ;  ;"
 
 [<Fact(Skip = "TODO")>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =

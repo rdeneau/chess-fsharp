@@ -18,7 +18,7 @@ let allSquareNotations: SquareNotation list =
 type PieceSymbol = char
 type Piece = King | Queen | Rook | Bishop | Knight | Pawn
 type Color = Black | White
-type Move = Forward | Rectilinear | Diagonal of int | Jump | Other
+type Move = Forward | Rectilinear of int | Diagonal of int | Jump | Other
 
 type ColoredPiece = { Color: Color; Piece: Piece }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
@@ -73,8 +73,8 @@ let computeMove startSquare endSquare color =
     Forward
   else
     match abs file, abs rank with
-    | 0, _ -> Rectilinear
-    | _, 0 -> Rectilinear
+    | 0, r -> Rectilinear r
+    | f, 0 -> Rectilinear f
     | f, r when f = r -> Diagonal f
     | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
     | _ -> Other
@@ -101,11 +101,20 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
     | Pawn, Forward
     | Knight, Jump
     | Bishop, Diagonal _
-    | Rook, Forward | Rook, Rectilinear
-    | Queen, Diagonal _ | Queen, Forward | Queen, Rectilinear _
+
+    | Rook, Forward
+    | Rook, Rectilinear _
+
+    | Queen, Forward
+    | Queen, Diagonal _
+    | Queen, Rectilinear _
+
+    | King, Forward
+    | King, Diagonal 1
+    | King, Rectilinear 1
       -> Ok ()
-    // TODO: other pieces
-    | _ -> Error "move not allowed"
+    | _
+      -> Error "move not allowed"
 
   monad' {
     let! (pieceSquare, targetSquare) = checkSquaresDistinct
