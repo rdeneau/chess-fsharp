@@ -1,17 +1,26 @@
 module Chess
 
 open FSharpPlus
-open Helpers
 open System
+
+open Helpers
 
 type File = a = 1 | b = 2 | c = 3 | d = 4 | e = 5 | f = 6 | g = 7 | h = 8 // Column
 type Rank = _1 = 1 | _2 = 2 | _3 = 3 | _4 = 4 | _5 = 5 | _6 = 6 | _7 = 7 | _8 = 8 // Row
 type SquareNotation = string // E.g. "a1"
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
-type Color = Black | White
-type Piece = King | Queen | Rook | Bishop | Knight | Pawn
-type ColoredPiece = { Color: Color; Piece: Piece }
+
+let allSquareNotations: SquareNotation list =
+  [for file in enumValues<File> do
+   for rank in enumValues<Rank> do
+     yield $"{file}{int rank}" ]
+
 type PieceSymbol = char
+type Piece = King | Queen | Rook | Bishop | Knight | Pawn
+type Color = Black | White
+type Move = Forward | Rectilinear | Diagonal of int | Jump | Other
+
+type ColoredPiece = { Color: Color; Piece: Piece }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 let emptyGame = { Board = Map.empty; Turn = White }
@@ -48,6 +57,20 @@ let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
   let board = game.Board |> Map.add (square |> Square.parse) (piece |> ColoredPiece.parse)
   { game with Board = board }
 
+let computeMove startSquare endSquare color =
+  match int (endSquare.File - startSquare.File),
+        int (endSquare.Rank - startSquare.Rank),
+        color with
+  | 0,  1, White -> Forward
+  | 0, -1, Black -> Forward
+  | 0,  2, White when startSquare.Rank = Rank._2 -> Forward
+  | 0, -2, Black when startSquare.Rank = Rank._7 -> Forward
+  | 0, _, _ -> Rectilinear
+  | _, 0, _ -> Rectilinear
+  | file, rank, _ when abs file = abs rank -> Diagonal (abs file)
+  | file, rank, _ when abs file + abs rank = 3 && abs (file - rank) = 1 -> Jump
+  | _ -> Other
+
 let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
 
   let tryFindPieceAt square = game.Board |> Map.tryFind square
@@ -62,15 +85,24 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
 
   let checkTurnToPlay piece =
     if game.Turn <> piece.Color then
-      Error $"not yet {piece.Color}'s turn"
+      Error $"not {piece.Color}'s turn to play"
     else
       Ok piece
+
+  let checkPieceMove { Piece = piece } move =
+    match piece, move with
+    | Pawn, Forward -> Ok ()
+    | _ -> Error "move not allowed"
 
   monad' {
     let! (pieceSquare, targetSquare) = checkSquaresDistinct
     let! movedPiece =
       tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
       >>= checkTurnToPlay
+
+    let move = computeMove pieceSquare targetSquare movedPiece.Color
+    do! checkPieceMove movedPiece move
+
     let board =
       game.Board
       |> Map.remove pieceSquare
