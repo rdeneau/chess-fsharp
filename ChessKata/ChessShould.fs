@@ -6,6 +6,12 @@ open FsUnit
 open Swensen.Unquote
 open Xunit
 
+let split (squares: string) : SquareNotation list =
+  squares.Split(';')
+  |> Array.toList
+  |> List.map (fun s -> s.Trim())
+  |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s))
+
 [<Fact>]
 let ``Reject invalid coordinate`` () =
   raises<exn> <@ emptyGame |> move "xx" "a1" @>
@@ -50,6 +56,7 @@ let ``Reject moving white pawn at e2, e3 or e4 to an empty square not reachable`
   |> Map.add ("e2": SquareNotation) (allSquareNotations |> List.except ["e2";"e3";"e4"])
   |> Map.add ("e3": SquareNotation) (allSquareNotations |> List.except ["e3";"e4"])
   |> Map.add ("e4": SquareNotation) (allSquareNotations |> List.except ["e4";"e5"])
+  |> Map.add ("e8": SquareNotation) (allSquareNotations |> List.except ["e8"])
   |> Map.iter (fun pawnSquare notReachableSquares ->
        notReachableSquares |> List.iter (fun targetSquare ->
          let game = emptyGame |> add '♙' pawnSquare
@@ -64,6 +71,7 @@ let ``Reject moving black pawn at e2, e3 or e4 to an empty square not reachable`
   |> Map.add ("e7": SquareNotation) (allSquareNotations |> List.except ["e7";"e6";"e5"])
   |> Map.add ("e6": SquareNotation) (allSquareNotations |> List.except ["e6";"e5"])
   |> Map.add ("e5": SquareNotation) (allSquareNotations |> List.except ["e5";"e4"])
+  |> Map.add ("e1": SquareNotation) (allSquareNotations |> List.except ["e1"])
   |> Map.iter (fun pawnSquare notReachableSquares ->
        notReachableSquares |> List.iter (fun targetSquare ->
          let game = { emptyGame with Turn = Black } |> add '♟' pawnSquare
@@ -72,8 +80,31 @@ let ``Reject moving black pawn at e2, e3 or e4 to an empty square not reachable`
        )
      )
 
+[<Fact>]
+let ``Reject moving knight to an empty square not reachable`` () =
+  Map.empty
+  |> Map.add ("d5": SquareNotation) (allSquareNotations |> List.except (split
+     @"  ;c7;  ;e7;  ;
+      ;b6;  ;  ;  ;f6;
+      ;  ;  ;d5;  ;  ;
+      ;b4;  ;  ;  ;f4;
+      ;  ;c3;  ;e3;  ;" ))
+  |> Map.add ("a1": SquareNotation) (allSquareNotations |> List.except (split
+     @"  ;c2;  ;
+      ;  ;  ;b3;
+      ;a1;  ;  ;" ))
+  |> Map.iter (fun pawnSquare notReachableSquares ->
+       notReachableSquares |> List.iter (fun targetSquare ->
+         let game = emptyGame |> add '♘' pawnSquare
+         let result = game |> move pawnSquare targetSquare
+         result =! Error "move not allowed"
+       )
+     )
+
 [<Fact(Skip = "TODO")>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
-  let game = emptyGame |> add '♙' "e2"
-  let result = game |> move "e2" "e4"
-  result =! Ok (emptyGame |> add '♙' "e4")
+  "TODO"
+
+[<Fact(Skip = "TODO")>]
+let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
+  "TODO"

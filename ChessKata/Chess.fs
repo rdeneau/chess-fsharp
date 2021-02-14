@@ -59,16 +59,15 @@ let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
 
 let computeMove startSquare endSquare color =
   match int (endSquare.File - startSquare.File),
-        int (endSquare.Rank - startSquare.Rank),
-        color with
-  | 0,  1, White -> Forward
-  | 0, -1, Black -> Forward
-  | 0,  2, White when startSquare.Rank = Rank._2 -> Forward
-  | 0, -2, Black when startSquare.Rank = Rank._7 -> Forward
-  | 0, _, _ -> Rectilinear
-  | _, 0, _ -> Rectilinear
-  | file, rank, _ when abs file = abs rank -> Diagonal (abs file)
-  | file, rank, _ when abs file + abs rank = 3 && abs (file - rank) = 1 -> Jump
+        int (endSquare.Rank - startSquare.Rank) with
+  | 0,  1 when color = White -> Forward
+  | 0, -1 when color = Black -> Forward
+  | 0,  2 when color = White && startSquare.Rank = Rank._2 -> Forward
+  | 0, -2 when color = Black && startSquare.Rank = Rank._7 -> Forward
+  | 0, _ -> Rectilinear
+  | _, 0 -> Rectilinear
+  | file, rank when abs file = abs rank -> Diagonal (abs file)
+  | file, rank when abs file + abs rank = 3 && abs (file - rank) = 1 -> Jump
   | _ -> Other
 
 let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
@@ -91,7 +90,10 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
 
   let checkPieceMove { Piece = piece } move =
     match piece, move with
-    | Pawn, Forward -> Ok ()
+    | Pawn, Forward
+    | Knight, Jump
+      -> Ok ()
+    // TODO: other pieces
     | _ -> Error "move not allowed"
 
   monad' {
