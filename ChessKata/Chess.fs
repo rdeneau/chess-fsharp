@@ -53,8 +53,10 @@ module Square =
       }
     | _ -> failwith "invalid coordinate"
 
-let add (piece: PieceSymbol) (square: SquareNotation) (game: Game) : Game =
-  let board = game.Board |> Map.add (square |> Square.parse) (piece |> ColoredPiece.parse)
+let add pieceSymbol squareNotation (game: Game) : Game =
+  let square = squareNotation |> Square.parse
+  let piece = pieceSymbol |> ColoredPiece.parse
+  let board = game.Board |> Map.add square piece
   { game with Board = board }
 
 let computeMove startSquare endSquare color =

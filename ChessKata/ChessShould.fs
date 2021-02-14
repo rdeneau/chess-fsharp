@@ -38,12 +38,6 @@ let ``Reject moving a piece of a player for which it's not the turn to play`` ()
   checkWith White "e7" "e5" "not Black's turn to play"
   checkWith Black "e2" "e4" "not White's turn to play"
 
-[<Fact>]
-let ``Move piece to the destination square given it's reachable and empty`` () =
-  let game = emptyGame |> add '♙' "e2"
-  let result = game |> move "e2" "e4"
-  result =! Ok (emptyGame |> add '♙' "e4")
-
 let split (squaresSketch: string) : SquareNotation list =
   squaresSketch.Split(';')
   |> Array.toList
@@ -87,10 +81,6 @@ let ``Reject moving knight to an empty square not reachable by jump`` () =
       ;  ;  ;xx;  ;  ;
       ;b4;  ;  ;  ;f4;
       ;  ;c3;  ;e3;  ;"
-  testPieceMove '♘' "a1"
-     @"  ;c2;  ;
-      ;  ;  ;b3;
-      ;xx;  ;  ;"
 
 [<Fact>]
 let ``Reject moving bishop to an empty square not in diagonal`` () =
