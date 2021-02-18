@@ -135,14 +135,28 @@ let ``Reject moving king to an empty square adjacent`` () =
       ;  ;  ;  ;  ;  ;  ;  ;  ;
       ;  ;  ;  ;  ;  ;  ;  ;  ;
       ;  ;  ;  ;  ;  ;  ;  ;  ;"
-//
-//let parseBoard (board: string) : Map<Square, ColoredPiece> =
-//  ;
-//
-//
-//let testMove (boardNotation: string) pieceSymbol pieceSquare (reachableSquaresSketch: string) =
-//  let { Color = color } = ColoredPiece.parse pieceSymbol
-//  let game = { Board = parseBoard boardNotation; Turn = color }
+
+[<Fact>]
+let ``Add pieces by rank`` () =
+  let actualGame =
+    emptyGame  // abcdefgh
+    |> addRank 8 "♜       "
+    |> addRank 5 "    ♟   "
+    |> addRank 4 "   ♙    "
+    |> addRank 1 "      ♘♖"
+  let expectedGame =
+    emptyGame
+    |> add '♜' "a8"
+    |> add '♟' "e5"
+    |> add '♙' "d4"
+    |> add '♘' "g1"
+    |> add '♖' "h1"
+  actualGame =! expectedGame
+
+//let testMove (boardNotation: string) (pieceSquare: SquareNotation) (reachableSquaresSketch: string) =
+//  let board = parseBoard boardNotation
+//  let { Color = color } = board |> Map.find (Square.parse pieceSquare)
+//  let game = { Board = board; Turn = color }
 //
 //  let reachableSquares = split reachableSquaresSketch |> List.except ["xx"]
 //  reachableSquares

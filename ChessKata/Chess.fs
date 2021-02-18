@@ -26,37 +26,80 @@ type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 let emptyGame = { Board = Map.empty; Turn = White }
 
 module ColoredPiece =
-  let parse (piece: PieceSymbol) : ColoredPiece =
-    match piece with
-    | '♔' -> { Color = White; Piece = King }
-    | '♕' -> { Color = White; Piece = Queen }
-    | '♖' -> { Color = White; Piece = Rook }
-    | '♗' -> { Color = White; Piece = Bishop }
-    | '♘' -> { Color = White; Piece = Knight }
-    | '♙' -> { Color = White; Piece = Pawn }
-    | '♚' -> { Color = Black; Piece = King }
-    | '♛' -> { Color = Black; Piece = Queen }
-    | '♜' -> { Color = Black; Piece = Rook }
-    | '♝' -> { Color = Black; Piece = Bishop }
-    | '♞' -> { Color = Black; Piece = Knight }
-    | '♟' -> { Color = Black; Piece = Pawn }
-    | s -> failwith $"invalid piece {s}"
+  let tryParse (symbol: PieceSymbol) =
+    match symbol with
+    | '♔' -> Some { Color = White; Piece = King }
+    | '♕' -> Some { Color = White; Piece = Queen }
+    | '♖' -> Some { Color = White; Piece = Rook }
+    | '♗' -> Some { Color = White; Piece = Bishop }
+    | '♘' -> Some { Color = White; Piece = Knight }
+    | '♙' -> Some { Color = White; Piece = Pawn }
+    | '♚' -> Some { Color = Black; Piece = King }
+    | '♛' -> Some { Color = Black; Piece = Queen }
+    | '♜' -> Some { Color = Black; Piece = Rook }
+    | '♝' -> Some { Color = Black; Piece = Bishop }
+    | '♞' -> Some { Color = Black; Piece = Knight }
+    | '♟' -> Some { Color = Black; Piece = Pawn }
+    | _ -> None
+
+  let parse (symbol: PieceSymbol) =
+    match tryParse symbol with
+    | Some square -> square
+    | None -> failwith "invalid coordinate"
 
 module Square =
-  let parse (notation: SquareNotation) =
+  let tryParse (notation: SquareNotation) =
     match notation with
     | Regex @"([a-h])([1-8])" [ file; rank ] ->
-      {
+      Some {
         Notation = notation
         File     = Enum.Parse(typeof<File>, file) :?> File
         Rank     = rank |> int |> enum<Rank>
       }
-    | _ -> failwith "invalid coordinate"
+    | _ -> None
+
+  let parse (notation: SquareNotation) =
+    match tryParse notation with
+    | Some square -> square
+    | None -> failwith "invalid coordinate"
+
+  let create file rank =
+    {
+      Notation = $"{file}{int rank}"
+      File     = file
+      Rank     = rank
+    }
 
 let add pieceSymbol squareNotation (game: Game) : Game =
   let square = squareNotation |> Square.parse
   let piece = pieceSymbol |> ColoredPiece.parse
   let board = game.Board |> Map.add square piece
+  { game with Board = board }
+
+let addRank (rankNum: int) (symbols: string) (game: Game) : Game =
+  let rank = rankNum |> int |> enum<Rank>
+  let mapSymbol (symbol, file) =
+    symbol
+    |> ColoredPiece.tryParse
+    |> Option.map (fun piece ->
+                   let square = Square.create file rank
+                   (piece, square))
+  let board =
+    match symbols |> Seq.toList with
+    | [a; b; c; d; e; f; g; h] ->
+      [
+        (a, File.a)
+        (b, File.b)
+        (c, File.c)
+        (d, File.d)
+        (e, File.e)
+        (f, File.f)
+        (g, File.g)
+        (h, File.h)
+      ]
+      |> List.choose mapSymbol
+      |> List.fold (fun board (piece, square) -> board |> Map.add square piece) game.Board
+    | _ -> failwith "invalid symbols"
   { game with Board = board }
 
 let computeMove startSquare endSquare color =
@@ -101,7 +144,7 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
   let checkTarget targetPiece turn =
     match targetPiece with
     | Some { Color = targetColor } when targetColor = turn
-      -> Error "target square occupied by a piece of the current player"
+      -> Error "move not allowed"
     | _
       -> Ok ()
 
