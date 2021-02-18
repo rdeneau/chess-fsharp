@@ -7,6 +7,12 @@ open Swensen.Unquote
 open Xunit
 
 [<Fact>]
+let ``Reposition specified piece, removing target piece`` () =
+  let game = emptyGame |> add '♙' "e4" |> add '♟' "d5"
+  let result = game |> reposition "e4" "d5"
+  result =! (emptyGame |> add '♙' "d5")
+
+[<Fact>]
 let ``Reject invalid coordinate`` () =
   raises<exn> <@ emptyGame |> move "xx" "a1" @>
   raises<exn> <@ emptyGame |> move "a1" null @>
@@ -129,15 +135,36 @@ let ``Reject moving king to an empty square adjacent`` () =
       ;  ;  ;  ;  ;  ;  ;  ;  ;
       ;  ;  ;  ;  ;  ;  ;  ;  ;
       ;  ;  ;  ;  ;  ;  ;  ;  ;"
-
-[<Fact(Skip = "TODO")>]
-let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
-  "TODO"
+//
+//let parseBoard (board: string) : Map<Square, ColoredPiece> =
+//  ;
+//
+//
+//let testMove (boardNotation: string) pieceSymbol pieceSquare (reachableSquaresSketch: string) =
+//  let { Color = color } = ColoredPiece.parse pieceSymbol
+//  let game = { Board = parseBoard boardNotation; Turn = color }
+//
+//  let reachableSquares = split reachableSquaresSketch |> List.except ["xx"]
+//  reachableSquares
+//  |> List.iter (fun targetSquare ->
+//       let result = game |> move pieceSquare targetSquare
+//       result =! Ok (game |> reposition pieceSquare targetSquare) )
+//
+//  let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
+//  notReachableSquares
+//  |> List.iter (fun targetSquare ->
+//       let result = game |> move pieceSquare targetSquare
+//       result =! Error "move not allowed" )
 
 [<Fact(Skip = "TODO")>]
 let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
   "TODO"
 
+[<Fact(Skip = "TODO")>]
+let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
+  "TODO"
+
+// TODO: Pawn promoted to Queen
 // TODO: Pawn blocked ahead cannot move
 // TODO: Knight can jump
 // TODO: Bishop, Rook, Queen, King blocked before destination cannot move

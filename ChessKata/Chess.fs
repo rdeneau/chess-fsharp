@@ -98,6 +98,13 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
     else
       Ok piece
 
+  let checkTarget targetPiece turn =
+    match targetPiece with
+    | Some { Color = targetColor } when targetColor = turn
+      -> Error "target square occupied by a piece of the current player"
+    | _
+      -> Ok ()
+
   let checkPieceMove { Piece = piece } move =
     match piece, move with
     | Pawn, Forward
@@ -120,9 +127,13 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
 
   monad' {
     let! (pieceSquare, targetSquare) = checkSquaresDistinct
+
     let! movedPiece =
       tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
       >>= checkTurnToPlay
+
+    let targetPiece = tryFindPieceAt targetSquare
+    do! checkTarget targetPiece game.Turn
 
     let move = computeMove pieceSquare targetSquare movedPiece.Color
     do! checkPieceMove movedPiece move
@@ -133,3 +144,15 @@ let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game:
       |> Map.add targetSquare movedPiece
     return { game with Board = board }
   }
+
+let reposition (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Game =
+  let pieceSquare  = Square.parse pieceLocation
+  let targetSquare = Square.parse targetLocation
+  let piece =
+    game.Board
+    |> Map.find pieceSquare
+  let board =
+    game.Board
+    |> Map.remove pieceSquare
+    |> Map.add targetSquare piece
+  { game with Board = board }
