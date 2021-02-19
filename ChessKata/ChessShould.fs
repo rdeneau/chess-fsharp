@@ -48,95 +48,95 @@ let ``Reject moving a piece of a player for which it's not the turn to play`` ()
 let ``Reject moving white pawn to an empty square not reachable forward`` () =
   testWhitePieceMove "c2" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "――➕―――――"
-      3, "――➕―――――"
-      2, "――♙―――――" ]
+      4, "➖➖➕➖➖➖➖➖"
+      3, "➖➖➕➖➖➖➖➖"
+      2, "➖➖♙➖➖➖➖➖" ]
   testWhitePieceMove "d3" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "―――➕――――"
-      3, "―――♙――――" ]
+      4, "➖➖➖➕➖➖➖➖"
+      3, "➖➖➖♙➖➖➖➖" ]
   testWhitePieceMove "e4" [
       9, "ａｂｃｄｅｆｇｈ"
-      5, "――――➕―――"
-      4, "――――♙―――" ]
+      5, "➖➖➖➖➕➖➖➖"
+      4, "➖➖➖➖♙➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving black pawn to an empty square not reachable forward`` () =
   testBlackPieceMove "c7" [
       9, "ａｂｃｄｅｆｇｈ"
-      7, "――♟―――――"
-      6, "――➕―――――"
-      5, "――➕―――――" ]
+      7, "➖➖♟➖➖➖➖➖"
+      6, "➖➖➕➖➖➖➖➖"
+      5, "➖➖➕➖➖➖➖➖" ]
   testBlackPieceMove "d6" [
       9, "ａｂｃｄｅｆｇｈ"
-      6, "―――♟――――"
-      5, "―――➕――――" ]
+      6, "➖➖➖♟➖➖➖➖"
+      5, "➖➖➖➕➖➖➖➖" ]
   testBlackPieceMove "e5" [
       9, "ａｂｃｄｅｆｇｈ"
-      5, "――――♟―――"
-      4, "――――➕―――" ]
+      5, "➖➖➖➖♟➖➖➖"
+      4, "➖➖➖➖➕➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving knight to an empty square not reachable by jump`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      7, "――➕―➕―――"
-      6, "―➕―――➕――"
-      5, "―――♘――――"
-      4, "―➕―――➕――"
-      3, "――➕―➕―――" ]
+      7, "➖➖➕➖➕➖➖➖"
+      6, "➖➕➖➖➖➕➖➖"
+      5, "➖➖➖♘➖➖➖➖"
+      4, "➖➕➖➖➖➕➖➖"
+      3, "➖➖➕➖➕➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving bishop to an empty square not in diagonal`` () =
   testWhitePieceMove "d4" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "―――――――➕"
-      7, "➕―――――➕―"
-      6, "―➕―――➕――"
-      5, "――➕―➕―――"
-      4, "―――♗――――"
-      3, "――➕―➕―――"
-      2, "―➕―――➕――"
-      1, "➕―――――➕―" ]
+      8, "➖➖➖➖➖➖➖➕"
+      7, "➕➖➖➖➖➖➕➖"
+      6, "➖➕➖➖➖➕➖➖"
+      5, "➖➖➕➖➕➖➖➖"
+      4, "➖➖➖♗➖➖➖➖"
+      3, "➖➖➕➖➕➖➖➖"
+      2, "➖➕➖➖➖➕➖➖"
+      1, "➕➖➖➖➖➖➕➖" ]
 
 [<Fact>]
 let ``Reject moving rook to an empty square not rectilinear`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "―――➕――――"
-      7, "―――➕――――"
-      6, "―――➕――――"
+      8, "➖➖➖➕➖➖➖➖"
+      7, "➖➖➖➕➖➖➖➖"
+      6, "➖➖➖➕➖➖➖➖"
       5, "➕➕➕♖➕➕➕➕"
-      4, "―――➕――――"
-      3, "―――➕――――"
-      2, "―――➕――――"
-      1, "―――➕――――" ]
+      4, "➖➖➖➕➖➖➖➖"
+      3, "➖➖➖➕➖➖➖➖"
+      2, "➖➖➖➕➖➖➖➖"
+      1, "➖➖➖➕➖➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving queen to an empty square not reachable`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "➕――➕――➕―"
-      7, "―➕―➕―➕――"
-      6, "――➕➕➕―――"
+      8, "➕➖➖➕➖➖➕➖"
+      7, "➖➕➖➕➖➕➖➖"
+      6, "➖➖➕➕➕➖➖➖"
       5, "➕➕➕♕➕➕➕➕"
-      4, "――➕➕➕―――"
-      3, "―➕―➕―➕――"
-      2, "➕――➕――➕―"
-      1, "―――➕―――➕" ]
+      4, "➖➖➕➕➕➖➖➖"
+      3, "➖➕➖➕➖➕➖➖"
+      2, "➕➖➖➕➖➖➕➖"
+      1, "➖➖➖➕➖➖➖➕" ]
 
 [<Fact>]
 let ``Reject moving king to an empty square adjacent`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "――――――――"
-      7, "――――――――"
-      6, "――➕➕➕―――"
-      5, "――➕♔➕―――"
-      4, "――➕➕➕―――"
-      3, "――――――――"
-      2, "――――――――"
-      1, "――――――――" ]
+      8, "➖➖➖➖➖➖➖➖"
+      7, "➖➖➖➖➖➖➖➖"
+      6, "➖➖➕➕➕➖➖➖"
+      5, "➖➖➕♔➕➖➖➖"
+      4, "➖➖➕➕➕➖➖➖"
+      3, "➖➖➖➖➖➖➖➖"
+      2, "➖➖➖➖➖➖➖➖"
+      1, "➖➖➖➖➖➖➖➖" ]
 
 [<Fact(Skip = "TODO")>]
 let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
