@@ -1,4 +1,4 @@
-module Chess
+module ChessKata.Chess
 
 open FSharpPlus
 open System
@@ -20,7 +20,7 @@ type Piece = King | Queen | Rook | Bishop | Knight | Pawn
 type Color = Black | White
 type Move = Forward | Rectilinear of int | Diagonal of int | Jump | Other
 
-type ColoredPiece = { Color: Color; Piece: Piece }
+type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 let emptyGame = { Board = Map.empty; Turn = White }
@@ -28,18 +28,18 @@ let emptyGame = { Board = Map.empty; Turn = White }
 module ColoredPiece =
   let tryParse (symbol: PieceSymbol) =
     match symbol with
-    | '♔' -> Some { Color = White; Piece = King }
-    | '♕' -> Some { Color = White; Piece = Queen }
-    | '♖' -> Some { Color = White; Piece = Rook }
-    | '♗' -> Some { Color = White; Piece = Bishop }
-    | '♘' -> Some { Color = White; Piece = Knight }
-    | '♙' -> Some { Color = White; Piece = Pawn }
-    | '♚' -> Some { Color = Black; Piece = King }
-    | '♛' -> Some { Color = Black; Piece = Queen }
-    | '♜' -> Some { Color = Black; Piece = Rook }
-    | '♝' -> Some { Color = Black; Piece = Bishop }
-    | '♞' -> Some { Color = Black; Piece = Knight }
-    | '♟' -> Some { Color = Black; Piece = Pawn }
+    | '♔' -> Some { Symbol = symbol; Color = White; Piece = King }
+    | '♕' -> Some { Symbol = symbol; Color = White; Piece = Queen }
+    | '♖' -> Some { Symbol = symbol; Color = White; Piece = Rook }
+    | '♗' -> Some { Symbol = symbol; Color = White; Piece = Bishop }
+    | '♘' -> Some { Symbol = symbol; Color = White; Piece = Knight }
+    | '♙' -> Some { Symbol = symbol; Color = White; Piece = Pawn }
+    | '♚' -> Some { Symbol = symbol; Color = Black; Piece = King }
+    | '♛' -> Some { Symbol = symbol; Color = Black; Piece = Queen }
+    | '♜' -> Some { Symbol = symbol; Color = Black; Piece = Rook }
+    | '♝' -> Some { Symbol = symbol; Color = Black; Piece = Bishop }
+    | '♞' -> Some { Symbol = symbol; Color = Black; Piece = Knight }
+    | '♟' -> Some { Symbol = symbol; Color = Black; Piece = Pawn }
     | _ -> None
 
   let parse (symbol: PieceSymbol) =
@@ -76,30 +76,36 @@ let add pieceSymbol squareNotation (game: Game) : Game =
   let board = game.Board |> Map.add square piece
   { game with Board = board }
 
-let addRank (rankNum: int) (symbols: string) (game: Game) : Game =
+let parseRankSymbols (rankNum: int) (symbols: string) =
   let rank = rankNum |> int |> enum<Rank>
   let mapSymbol (symbol, file) =
+    let square = Square.create file rank
+    (symbol, square)
+  match symbols |> Seq.toList with
+  | [a; b; c; d; e; f; g; h] ->
+    [
+      (a, File.a)
+      (b, File.b)
+      (c, File.c)
+      (d, File.d)
+      (e, File.e)
+      (f, File.f)
+      (g, File.g)
+      (h, File.h)
+    ]
+    |> List.map mapSymbol
+  | _ -> failwith "invalid symbols"
+
+let addRank (rankNum: int) (symbols: string) (game: Game) : Game =
+  let mapSymbol (symbol, square) =
     symbol
     |> ColoredPiece.tryParse
-    |> Option.map (fun piece ->
-                   let square = Square.create file rank
-                   (piece, square))
+    |> Option.map (fun piece -> (piece, square))
   let board =
-    match symbols |> Seq.toList with
-    | [a; b; c; d; e; f; g; h] ->
-      [
-        (a, File.a)
-        (b, File.b)
-        (c, File.c)
-        (d, File.d)
-        (e, File.e)
-        (f, File.f)
-        (g, File.g)
-        (h, File.h)
-      ]
-      |> List.choose mapSymbol
-      |> List.fold (fun board (piece, square) -> board |> Map.add square piece) game.Board
-    | _ -> failwith "invalid symbols"
+    symbols
+    |> parseRankSymbols rankNum
+    |> List.choose mapSymbol
+    |> List.fold (fun board (piece, square) -> board |> Map.add square piece) game.Board
   { game with Board = board }
 
 let computeMove startSquare endSquare color =

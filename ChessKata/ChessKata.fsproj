@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="Helpers.fs" />
     <Compile Include="Chess.fs" />
+    <Compile Include="ChessTestHelper.fs" />
     <Compile Include="ChessShould.fs" />
   </ItemGroup>
 

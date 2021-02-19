@@ -1,7 +1,7 @@
-module ChessShould
+module ChessKata.ChessShould
 
 open Chess
-
+open ChessTestHelper
 open FsUnit
 open Swensen.Unquote
 open Xunit
@@ -44,131 +44,99 @@ let ``Reject moving a piece of a player for which it's not the turn to play`` ()
   checkWith White "e7" "e5" "not Black's turn to play"
   checkWith Black "e2" "e4" "not White's turn to play"
 
-let split (squaresSketch: string) : SquareNotation list =
-  squaresSketch.Split(';')
-  |> Array.toList
-  |> List.map (fun s -> s.Trim())
-  |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s))
-
-let testPieceMove pieceSymbol pieceSquare (reachableSquaresSketch: string) =
-  let { Color = color } = ColoredPiece.parse pieceSymbol
-  let emptyGame = { emptyGame with Turn = color }
-  let game = emptyGame |> add pieceSymbol pieceSquare
-
-  let reachableSquares = split reachableSquaresSketch |> List.except ["xx"]
-  reachableSquares
-  |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
-       result =! Ok (emptyGame |> add pieceSymbol targetSquare) )
-
-  let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
-  notReachableSquares
-  |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
-       result =! Error "move not allowed" )
-
 [<Fact>]
 let ``Reject moving white pawn to an empty square not reachable forward`` () =
-  testPieceMove '♙' "e2" "e3;e4"
-  testPieceMove '♙' "e3" "e4"
-  testPieceMove '♙' "e4" "e5"
+  testWhitePieceMove "c2" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "――➕―――――"
+      3, "――➕―――――"
+      2, "――♙―――――" ]
+  testWhitePieceMove "d3" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "―――➕――――"
+      3, "―――♙――――" ]
+  testWhitePieceMove "e4" [
+      9, "ａｂｃｄｅｆｇｈ"
+      5, "――――➕―――"
+      4, "――――♙―――" ]
 
 [<Fact>]
 let ``Reject moving black pawn to an empty square not reachable forward`` () =
-  testPieceMove '♟' "e7" "e6;e5"
-  testPieceMove '♟' "e6" "e5"
-  testPieceMove '♟' "e5" "e4"
+  testBlackPieceMove "c7" [
+      9, "ａｂｃｄｅｆｇｈ"
+      7, "――♟―――――"
+      6, "――➕―――――"
+      5, "――➕―――――" ]
+  testBlackPieceMove "d6" [
+      9, "ａｂｃｄｅｆｇｈ"
+      6, "―――♟――――"
+      5, "―――➕――――" ]
+  testBlackPieceMove "e5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      5, "――――♟―――"
+      4, "――――➕―――" ]
 
 [<Fact>]
 let ``Reject moving knight to an empty square not reachable by jump`` () =
-  testPieceMove '♘' "d5"
-     @"  ;c7;  ;e7;  ;
-      ;b6;  ;  ;  ;f6;
-      ;  ;  ;xx;  ;  ;
-      ;b4;  ;  ;  ;f4;
-      ;  ;c3;  ;e3;  ;"
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      7, "――➕―➕―――"
+      6, "―➕―――➕――"
+      5, "―――♘――――"
+      4, "―➕―――➕――"
+      3, "――➕―➕―――" ]
 
 [<Fact>]
 let ``Reject moving bishop to an empty square not in diagonal`` () =
-  testPieceMove '♗' "d4"
-     @"  ;  ;  ;  ;  ;  ;  ;h8;
-      ;a7;  ;  ;  ;  ;  ;g7;  ;
-      ;  ;b6;  ;  ;  ;f6;  ;  ;
-      ;  ;  ;c5;  ;e5;  ;  ;  ;
-      ;  ;  ;  ;xx;  ;  ;  ;  ;
-      ;  ;  ;c3;  ;e3;  ;  ;  ;
-      ;  ;b2;  ;  ;  ;f2;  ;  ;
-      ;a1;  ;  ;  ;  ;  ;g1;  ;"
+  testWhitePieceMove "d4" [
+      9, "ａｂｃｄｅｆｇｈ"
+      8, "―――――――➕"
+      7, "➕―――――➕―"
+      6, "―➕―――➕――"
+      5, "――➕―➕―――"
+      4, "―――♗――――"
+      3, "――➕―➕―――"
+      2, "―➕―――➕――"
+      1, "➕―――――➕―" ]
 
 [<Fact>]
 let ``Reject moving rook to an empty square not rectilinear`` () =
-  testPieceMove '♖' "d5"
-     @"  ;  ;  ;d8;  ;  ;  ;  ;
-      ;  ;  ;  ;d7;  ;  ;  ;  ;
-      ;  ;  ;  ;d6;  ;  ;  ;  ;
-      ;a5;b5;c5;xx;e5;f5;g5;h5;
-      ;  ;  ;  ;d4;  ;  ;  ;  ;
-      ;  ;  ;  ;d3;  ;  ;  ;  ;
-      ;  ;  ;  ;d2;  ;  ;  ;  ;
-      ;  ;  ;  ;d1;  ;  ;  ;  ;"
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      8, "―――➕――――"
+      7, "―――➕――――"
+      6, "―――➕――――"
+      5, "➕➕➕♖➕➕➕➕"
+      4, "―――➕――――"
+      3, "―――➕――――"
+      2, "―――➕――――"
+      1, "―――➕――――" ]
 
 [<Fact>]
 let ``Reject moving queen to an empty square not reachable`` () =
-  testPieceMove '♕' "d4"
-     @"  ;  ;  ;d8;  ;  ;  ;h8;
-      ;a7;  ;  ;d7;  ;  ;g7;  ;
-      ;  ;b6;  ;d6;  ;f6;  ;  ;
-      ;  ;  ;c5;d5;e5;  ;  ;  ;
-      ;a4;b4;c4;xx;e4;f4;g4;h4;
-      ;  ;  ;c3;d3;e3;  ;  ;  ;
-      ;  ;b2;  ;d2;  ;f2;  ;  ;
-      ;a1;  ;  ;d1;  ;  ;g1;  ;"
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      8, "➕――➕――➕―"
+      7, "―➕―➕―➕――"
+      6, "――➕➕➕―――"
+      5, "➕➕➕♕➕➕➕➕"
+      4, "――➕➕➕―――"
+      3, "―➕―➕―➕――"
+      2, "➕――➕――➕―"
+      1, "―――➕―――➕" ]
 
 [<Fact>]
 let ``Reject moving king to an empty square adjacent`` () =
-  testPieceMove '♔' "f5"
-     @"  ;  ;  ;  ;  ;  ;  ;  ;
-      ;  ;  ;  ;  ;  ;  ;  ;  ;
-      ;  ;  ;  ;  ;e6;f6;g6;  ;
-      ;  ;  ;  ;  ;e5;xx;g5;  ;
-      ;  ;  ;  ;  ;e4;f4;g4;  ;
-      ;  ;  ;  ;  ;  ;  ;  ;  ;
-      ;  ;  ;  ;  ;  ;  ;  ;  ;
-      ;  ;  ;  ;  ;  ;  ;  ;  ;"
-
-[<Fact>]
-let ``Add pieces by rank`` () =
-  let actualGame =
-    emptyGame  // abcdefgh
-    |> addRank 8 "♜       "
-    |> addRank 5 "    ♟   "
-    |> addRank 4 "   ♙    "
-    |> addRank 1 "      ♘♖"
-  let expectedGame =
-    emptyGame
-    |> add '♜' "a8"
-    |> add '♟' "e5"
-    |> add '♙' "d4"
-    |> add '♘' "g1"
-    |> add '♖' "h1"
-  actualGame =! expectedGame
-
-//let testMove (boardNotation: string) (pieceSquare: SquareNotation) (reachableSquaresSketch: string) =
-//  let board = parseBoard boardNotation
-//  let { Color = color } = board |> Map.find (Square.parse pieceSquare)
-//  let game = { Board = board; Turn = color }
-//
-//  let reachableSquares = split reachableSquaresSketch |> List.except ["xx"]
-//  reachableSquares
-//  |> List.iter (fun targetSquare ->
-//       let result = game |> move pieceSquare targetSquare
-//       result =! Ok (game |> reposition pieceSquare targetSquare) )
-//
-//  let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
-//  notReachableSquares
-//  |> List.iter (fun targetSquare ->
-//       let result = game |> move pieceSquare targetSquare
-//       result =! Error "move not allowed" )
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      8, "――――――――"
+      7, "――――――――"
+      6, "――➕➕➕―――"
+      5, "――➕♔➕―――"
+      4, "――➕➕➕―――"
+      3, "――――――――"
+      2, "――――――――"
+      1, "――――――――" ]
 
 [<Fact(Skip = "TODO")>]
 let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
