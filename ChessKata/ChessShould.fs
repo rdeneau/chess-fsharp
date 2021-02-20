@@ -8,37 +8,37 @@ open Xunit
 
 [<Fact>]
 let ``Reposition specified piece, removing target piece`` () =
-  let game = emptyGame |> add '♙' "e4" |> add '♟' "d5"
-  let result = game |> reposition "e4" "d5"
-  result =! (emptyGame |> add '♙' "d5")
+  let game = emptyGame |> Game.addPiece '♙' "e4" |> Game.addPiece '♟' "d5"
+  let result = game |> Game.reposition "e4" "d5"
+  result =! (emptyGame |> Game.addPiece '♙' "d5")
 
 [<Fact>]
 let ``Reject invalid coordinate`` () =
-  raises<exn> <@ emptyGame |> move "xx" "a1" @>
-  raises<exn> <@ emptyGame |> move "a1" null @>
+  raises<exn> <@ emptyGame |> Game.movePiece "xx" "a1" @>
+  raises<exn> <@ emptyGame |> Game.movePiece "a1" null @>
 
 [<Fact>]
 let ``Reject no move`` () =
-  let result = emptyGame |> move "c3" "c3"
+  let result = emptyGame |> Game.movePiece "c3" "c3"
   result =! Error "no move"
 
 [<Fact>]
 let ``Reject invalid piece`` () =
-  raises<exn> <@ emptyGame |> add '⛃' "e2" @>
+  raises<exn> <@ emptyGame |> Game.addPiece '⛃' "e2" @>
 
 [<Fact>]
 let ``Reject no piece at the given coordinate`` () =
-  let game = emptyGame |> add '♙' "e2"
-  let result = game |> move "c3" "c4"
+  let game = emptyGame |> Game.addPiece '♙' "e2"
+  let result = game |> Game.movePiece "c3" "c4"
   result =! Error "no piece at c3"
 
 [<Fact>]
 let ``Reject moving a piece of a player for which it's not the turn to play`` () =
   let checkWith turn piece destination expectedError =
     let game = { emptyGame with Turn = turn }
-               |> add '♙' "e2" // White
-               |> add '♟' "e7" // Black
-    let result = game |> move piece destination
+               |> Game.addPiece '♙' "e2" // White
+               |> Game.addPiece '♟' "e7" // Black
+    let result = game |> Game.movePiece piece destination
     result =! Error expectedError
 
   checkWith White "e7" "e5" "not Black's turn to play"
@@ -138,9 +138,23 @@ let ``Reject moving king to an empty square adjacent`` () =
       2, "➖➖➖➖➖➖➖➖"
       1, "➖➖➖➖➖➖➖➖" ]
 
-[<Fact(Skip = "TODO")>]
-let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
-  "TODO"
+[<Fact>]
+let ``Reject moving pawn to a reachable square occupied by another own piece`` () =
+  testWhitePieceMove "c2" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "➖➖♙➖➖➖➖➖"
+      3, "➖➖➕➖➖➖➖➖"
+      2, "➖➖♙➖➖➖➖➖" ]
+
+[<Fact>]
+let ``Reject moving pawn to a reachable but not capturable square occupied by adversary piece`` () =
+  testWhitePieceMove "c2" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "➖➖♟➖➖➖➖➖" // Black
+      3, "➖➖➕➖➖➖➖➖"
+      2, "➖➖♙➖➖➖➖➖" ]
+
+// TODO let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
 
 [<Fact(Skip = "TODO")>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =

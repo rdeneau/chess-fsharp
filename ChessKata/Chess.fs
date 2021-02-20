@@ -23,8 +23,6 @@ type Move = Forward | Rectilinear of int | Diagonal of int | Jump | Other
 type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
-let emptyGame = { Board = Map.empty; Turn = White }
-
 module ColoredPiece =
   let tryParse (symbol: PieceSymbol) =
     match symbol with
@@ -70,138 +68,121 @@ module Square =
       Rank     = rank
     }
 
-let add pieceSymbol squareNotation (game: Game) : Game =
-  let square = squareNotation |> Square.parse
-  let piece = pieceSymbol |> ColoredPiece.parse
-  let board = game.Board |> Map.add square piece
-  { game with Board = board }
+module Game =
+  let addPiece pieceSymbol squareNotation (game: Game) : Game =
+    let square = squareNotation |> Square.parse
+    let piece = pieceSymbol |> ColoredPiece.parse
+    let board = game.Board |> Map.add square piece
+    { game with Board = board }
 
-let parseRankSymbols (rankNum: int) (symbols: string) =
-  let rank = rankNum |> int |> enum<Rank>
-  let mapSymbol (symbol, file) =
-    let square = Square.create file rank
-    (symbol, square)
-  match symbols |> Seq.toList with
-  | [a; b; c; d; e; f; g; h] ->
-    [
-      (a, File.a)
-      (b, File.b)
-      (c, File.c)
-      (d, File.d)
-      (e, File.e)
-      (f, File.f)
-      (g, File.g)
-      (h, File.h)
-    ]
-    |> List.map mapSymbol
-  | _ -> failwith "invalid symbols"
+  let private computeMove startSquare endSquare color =
+    let file = int (endSquare.File - startSquare.File)
+    let rank = int (endSquare.Rank - startSquare.Rank)
 
-let addRank (rankNum: int) (symbols: string) (game: Game) : Game =
-  let mapSymbol (symbol, square) =
-    symbol
-    |> ColoredPiece.tryParse
-    |> Option.map (fun piece -> (piece, square))
-  let board =
-    symbols
-    |> parseRankSymbols rankNum
-    |> List.choose mapSymbol
-    |> List.fold (fun board (piece, square) -> board |> Map.add square piece) game.Board
-  { game with Board = board }
+    let isForward =
+      match file, rank, color, startSquare.Rank with
+      | 0,  1, White, _ -> true
+      | 0, -1, Black, _ -> true
+      | 0,  2, White, Rank._2 -> true
+      | 0, -2, Black, Rank._7 -> true
+      | _ -> false
 
-let computeMove startSquare endSquare color =
-  let file = int (endSquare.File - startSquare.File)
-  let rank = int (endSquare.Rank - startSquare.Rank)
+    if isForward then
+      Forward
+    else
+      match abs file, abs rank with
+      | 0, r -> Rectilinear r
+      | f, 0 -> Rectilinear f
+      | f, r when f = r -> Diagonal f
+      | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
+      | _ -> Other
 
-  let isForward =
-    match file, rank, color, startSquare.Rank with
-    | 0,  1, White, _ -> true
-    | 0, -1, Black, _ -> true
-    | 0,  2, White, Rank._2 -> true
-    | 0, -2, Black, Rank._7 -> true
-    | _ -> false
+  let movePiece (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
+    let tryFindPieceAt square = game.Board |> Map.tryFind square
 
-  if isForward then
-    Forward
-  else
-    match abs file, abs rank with
-    | 0, r -> Rectilinear r
-    | f, 0 -> Rectilinear f
-    | f, r when f = r -> Diagonal f
-    | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
-    | _ -> Other
+    let checkSquaresDistinct =
+      let pieceSquare  = Square.parse pieceLocation
+      let targetSquare = Square.parse targetLocation
+      if pieceSquare = targetSquare then
+        Error "no move"
+      else
+        Ok (pieceSquare, targetSquare)
 
-let move (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
-  let tryFindPieceAt square = game.Board |> Map.tryFind square
+    let checkTurnToPlay piece =
+      if game.Turn <> piece.Color then
+        Error $"not {piece.Color}'s turn to play"
+      else
+        Ok piece
 
-  let checkSquaresDistinct =
+    let checkTarget targetPiece turn =
+      match targetPiece with
+      | Some { Color = targetColor } when targetColor = turn
+        -> Error "move not allowed"
+      | _
+        -> Ok ()
+
+    let checkPieceMove { Color = turn; Piece = piece } move targetPiece =
+      match piece, move with
+      | Knight, Jump
+      | Bishop, Diagonal _
+
+      | Rook, Forward
+      | Rook, Rectilinear _
+
+      | Queen, Forward
+      | Queen, Diagonal _
+      | Queen, Rectilinear _
+
+      | King, Forward
+      | King, Diagonal 1
+      | King, Rectilinear 1
+        -> Ok ()
+
+      | Pawn, Forward ->
+        match targetPiece with
+        | None
+          -> Ok ()
+        | _
+          -> Error "move not allowed"
+
+      | Pawn, Diagonal 1 ->
+        match targetPiece with
+        | Some { Color = targetColor } when targetColor <> turn
+          -> Ok () // Capture adversary piece
+        | _
+          -> Error "move not allowed"
+
+      | _
+        -> Error "move not allowed"
+
+    monad' {
+      let! (pieceSquare, targetSquare) = checkSquaresDistinct
+
+      let! movedPiece =
+        tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
+        >>= checkTurnToPlay
+
+      let targetPiece = tryFindPieceAt targetSquare
+      do! checkTarget targetPiece game.Turn
+
+      let move = computeMove pieceSquare targetSquare movedPiece.Color
+      do! checkPieceMove movedPiece move targetPiece
+
+      let board =
+        game.Board
+        |> Map.remove pieceSquare
+        |> Map.add targetSquare movedPiece
+      return { game with Board = board }
+    }
+
+  let reposition (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Game =
     let pieceSquare  = Square.parse pieceLocation
     let targetSquare = Square.parse targetLocation
-    if pieceSquare = targetSquare then
-      Error "no move"
-    else
-      Ok (pieceSquare, targetSquare)
-
-  let checkTurnToPlay piece =
-    if game.Turn <> piece.Color then
-      Error $"not {piece.Color}'s turn to play"
-    else
-      Ok piece
-
-  let checkTarget targetPiece turn =
-    match targetPiece with
-    | Some { Color = targetColor } when targetColor = turn
-      -> Error "move not allowed"
-    | _
-      -> Ok ()
-
-  let checkPieceMove { Piece = piece } move =
-    match piece, move with
-    | Pawn, Forward
-    | Knight, Jump
-    | Bishop, Diagonal _
-
-    | Rook, Forward
-    | Rook, Rectilinear _
-
-    | Queen, Forward
-    | Queen, Diagonal _
-    | Queen, Rectilinear _
-
-    | King, Forward
-    | King, Diagonal 1
-    | King, Rectilinear 1
-      -> Ok ()
-    | _
-      -> Error "move not allowed"
-
-  monad' {
-    let! (pieceSquare, targetSquare) = checkSquaresDistinct
-
-    let! movedPiece =
-      tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
-      >>= checkTurnToPlay
-
-    let targetPiece = tryFindPieceAt targetSquare
-    do! checkTarget targetPiece game.Turn
-
-    let move = computeMove pieceSquare targetSquare movedPiece.Color
-    do! checkPieceMove movedPiece move
-
+    let piece =
+      game.Board
+      |> Map.find pieceSquare
     let board =
       game.Board
       |> Map.remove pieceSquare
-      |> Map.add targetSquare movedPiece
-    return { game with Board = board }
-  }
-
-let reposition (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Game =
-  let pieceSquare  = Square.parse pieceLocation
-  let targetSquare = Square.parse targetLocation
-  let piece =
-    game.Board
-    |> Map.find pieceSquare
-  let board =
-    game.Board
-    |> Map.remove pieceSquare
-    |> Map.add targetSquare piece
-  { game with Board = board }
+      |> Map.add targetSquare piece
+    { game with Board = board }

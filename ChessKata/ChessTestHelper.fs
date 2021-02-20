@@ -3,6 +3,40 @@ module ChessKata.ChessTestHelper
 open Chess
 open Swensen.Unquote
 
+let emptyGame = { Board = Map.empty; Turn = White }
+
+let parseRankSymbols (rankNum: int) (symbols: string) =
+  let rank = rankNum |> int |> enum<Rank>
+  let mapSymbol (symbol, file) =
+    let square = Square.create file rank
+    (symbol, square)
+  match symbols |> Seq.toList with
+  | [a; b; c; d; e; f; g; h] ->
+    [
+      (a, File.a)
+      (b, File.b)
+      (c, File.c)
+      (d, File.d)
+      (e, File.e)
+      (f, File.f)
+      (g, File.g)
+      (h, File.h)
+    ]
+    |> List.map mapSymbol
+  | _ -> failwith "invalid symbols"
+
+let addRank (rankNum: int) (symbols: string) (game: Game) : Game =
+  let mapSymbol (symbol, square) =
+    symbol
+    |> ColoredPiece.tryParse
+    |> Option.map (fun piece -> (piece, square))
+  let board =
+    symbols
+    |> parseRankSymbols rankNum
+    |> List.choose mapSymbol
+    |> List.fold (fun board (piece, square) -> board |> Map.add square piece) game.Board
+  { game with Board = board }
+
 [<Literal>]
 let reachableSymbol = '➕'
 
@@ -20,13 +54,13 @@ let reachableInRank (rankNum: int) (symbols: string) : SquareNotation list =
 let testPieceMoveNewV0 pieceSquare (reachableSquares: SquareNotation list) game =
   reachableSquares
   |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
-       result =! Ok (game |> reposition pieceSquare targetSquare) )
+       let result = game |> Game.movePiece pieceSquare targetSquare
+       result =! Ok (game |> Game.reposition pieceSquare targetSquare) )
 
   let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
   notReachableSquares
   |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
+       let result = game |> Game.movePiece pieceSquare targetSquare
        result =! Error "move not allowed" )
 
 let testPieceMove turn pieceSquare (ranks: (int * string) list) =
@@ -38,13 +72,13 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
 
   reachableSquares
   |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
-       result =! Ok (game |> reposition pieceSquare targetSquare) )
+       let result = game |> Game.movePiece pieceSquare targetSquare
+       result =! Ok (game |> Game.reposition pieceSquare targetSquare) )
 
   let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
   notReachableSquares
   |> List.iter (fun targetSquare ->
-       let result = game |> move pieceSquare targetSquare
+       let result = game |> Game.movePiece pieceSquare targetSquare
        result =! Error "move not allowed" )
 
 let testBlackPieceMove = testPieceMove Black
