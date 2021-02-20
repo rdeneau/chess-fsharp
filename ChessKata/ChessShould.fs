@@ -154,11 +154,20 @@ let ``Reject moving pawn to a reachable but not capturable square occupied by ad
       3, "➖➖➕➖➖➖➖➖"
       2, "➖➖♙➖➖➖➖➖" ]
 
-// TODO let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
-
 [<Fact(Skip = "TODO")>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
-  "TODO"
+  testWhitePieceMove "c3" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "➖➕➕➕➖➖➖➖" // Can capture in both diagonal or go forward
+      4, "➖♟➖♟➖➖➖➖" // Black
+      3, "➖➖♙➖➖➖➖➖" ]
+
+[<Fact>]
+let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
+  testWhitePieceMove "c3" [
+      9, "ａｂｃｄｅｆｇｈ"
+      4, "➖♙➕♙➖➖➖➖"
+      3, "➖➖♙➖➖➖➖➖" ]
 
 // TODO: Pawn promoted to Queen
 // TODO: Pawn blocked ahead cannot move
