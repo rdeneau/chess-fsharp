@@ -106,9 +106,10 @@ let ``Reject moving bishop when blocked on the way`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 4 "➖➖➖♗➖➖➖➖"
     |> addRank 3 "➖➖♙➖➖➖➖➖"
-    |> addRank 2 "➖❓➖➖➖➖➖➖"
-  let result = game |> Game.movePiece "d4" "b2"
-  result =! Error "move not allowed"
+    |> addRank 2 "➖❓➖➖➖♙➖➖"
+    |> addRank 1 "➖➖➖➖➖➖❓➖"
+  (game |> Game.movePiece "d4" "b2") =! Error "move not allowed"
+  (game |> Game.movePiece "d4" "g1") =! Error "move not allowed"
 
 [<Fact>]
 let ``Reject moving rook to an empty square not rectilinear`` () =
@@ -124,6 +125,18 @@ let ``Reject moving rook to an empty square not rectilinear`` () =
       1, "➖➖➖➕➖➖➖➖" ]
 
 [<Fact>]
+let ``Reject moving rook when blocked on the way`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 4 "➖➖➖♖➖➖♙❓"
+    |> addRank 3 "➖➖➖➖➖➖➖➖"
+    |> addRank 2 "➖➖➖♙➖➖➖➖"
+    |> addRank 1 "➖➖➖❓➖➖➖➖"
+  (game |> Game.movePiece "d4" "d1") =! Error "move not allowed"
+  (game |> Game.movePiece "d4" "h4") =! Error "move not allowed"
+
+[<Fact>]
 let ``Reject moving queen to an empty square not reachable`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
@@ -135,6 +148,21 @@ let ``Reject moving queen to an empty square not reachable`` () =
       3, "➖➕➖➕➖➕➖➖"
       2, "➕➖➖➕➖➖➕➖"
       1, "➖➖➖➕➖➖➖➕" ]
+
+[<Fact>]
+let ``Reject moving queen when blocked on the way`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖❓➖❓➖❓➖➖"
+    |> addRank 5 "➖➖♙♙♙➖➖➖"
+    |> addRank 4 "❓♙➖♕➖➖♙❓"
+    |> addRank 3 "➖➖➖➖➖➖➖➖"
+    |> addRank 2 "➖➖➖♙➖♙➖➖"
+    |> addRank 1 "➖➖➖❓➖➖❓➖"
+
+  ["b6";"d6";"f6";"a4";"h4";"d1";"g1"]
+  |> List.iter (fun dest -> (game |> Game.movePiece "d4" dest) =! Error "move not allowed")
 
 [<Fact>]
 let ``Reject moving king to an empty square adjacent`` () =
@@ -180,7 +208,6 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
       4, "➖♙➕♙➖➖➖➖"
       3, "➖➖♙➖➖➖➖➖" ]
 
-// TODO: Pawn promoted to Queen
 // TODO: Knight can jump
-// TODO: Bishop, Rook, Queen, King blocked before destination cannot move
 // TODO: Knight, Bishop, Rook, Queen, King capturing adversary piece
+// TODO: Pawn promoted to Queen

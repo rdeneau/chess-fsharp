@@ -144,27 +144,25 @@ module Game =
     let checkPieceMove { Color = turn; Piece = piece } move targetPiece =
       match piece, move with
       | Knight, Jump
-      | Rook, Forward
       | Queen, Forward
+      | Rook, Forward
       | King, Forward
       | King, Diagonal { NumberOfSquares = 1 }
       | King, Rectilinear { NumberOfSquares = 1 }
         -> Ok ()
 
-      | Bishop, Diagonal { InsidePath = insidePath } ->
-        let blockingPieces =
-          insidePath
-          |> List.choose (fun x -> game.Board |> Map.tryFind x)
-        if blockingPieces |> List.isEmpty then
-          Ok ()
-        else
-          Error "move not allowed"
-
-      | Rook, Rectilinear _
-      | Queen, Diagonal _
-      | Queen, Rectilinear _
-      // TODO RDE: check blockage
-        -> Ok ()
+      | Bishop, Diagonal { InsidePath = insidePath }
+      | Queen, Diagonal { InsidePath = insidePath }
+      | Queen, Rectilinear { InsidePath = insidePath }
+      | Rook, Rectilinear { InsidePath = insidePath }
+        ->
+          let blockingPieces =
+            insidePath
+            |> List.choose (fun x -> game.Board |> Map.tryFind x)
+          if blockingPieces |> List.isEmpty then
+            Ok ()
+          else
+            Error "move not allowed"
 
       | Pawn, Forward ->
         match targetPiece with
@@ -180,8 +178,7 @@ module Game =
         | _
           -> Error "move not allowed"
 
-      | _
-        -> Error "move not allowed"
+      | _ -> Error "move not allowed"
 
     monad' {
       let! (pieceSquare, targetSquare) = checkSquaresDistinct
