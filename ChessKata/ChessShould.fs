@@ -87,6 +87,16 @@ let ``move knight to an empty square reachable by jump`` () =
       3, "➖➖➕➖➕➖➖➖" ]
 
 [<Fact>]
+let ``move knight jumping over piece`` () =
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      7, "➖➖➕➖➕➖➖➖"
+      6, "➖➕♙♙♙➕➖➖"
+      5, "➖➖♙♘♙➖➖➖"
+      4, "➖➕♙♙♙➕➖➖"
+      3, "➖➖➕➖➕➖➖➖" ]
+
+[<Fact>]
 let ``move bishop to an empty square in diagonal`` () =
   testWhitePieceMove "d4" [
       9, "ａｂｃｄｅｆｇｈ"
@@ -112,7 +122,7 @@ let ``Reject moving bishop when blocked on the way`` () =
   (game |> Game.movePiece "d4" "g1") =! Error "move not allowed"
 
 [<Fact>]
-let ``Reject moving rook to an empty square not rectilinear`` () =
+let ``Move rook to an empty square rectilinear`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
       8, "➖➖➖➕➖➖➖➖"
@@ -137,7 +147,7 @@ let ``Reject moving rook when blocked on the way`` () =
   (game |> Game.movePiece "d4" "h4") =! Error "move not allowed"
 
 [<Fact>]
-let ``Reject moving queen to an empty square not reachable`` () =
+let ``Move queen to an empty square reachable`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
       8, "➕➖➖➕➖➖➕➖"
@@ -165,17 +175,56 @@ let ``Reject moving queen when blocked on the way`` () =
   |> List.iter (fun dest -> (game |> Game.movePiece "d4" dest) =! Error "move not allowed")
 
 [<Fact>]
-let ``Reject moving king to an empty square adjacent`` () =
+let ``Move queen capturing adversary piece`` () =
   testWhitePieceMove "d5" [
+      // Board
       9, "ａｂｃｄｅｆｇｈ"
       8, "➖➖➖➖➖➖➖➖"
-      7, "➖➖➖➖➖➖➖➖"
+      7, "➖➖➖➖➖♟➖➖"
+      6, "➖➖➖♟➖➖➖➖"
+      5, "➖➖♟♕➖➖➖♟"
+      4, "➖➖♘➖♟➖➖➖"
+      3, "➖➖➖➖➖➖➖➖"
+      2, "➖➖➖♟➖➖➖➖"
+      // Reachable squares
+      9, "ａｂｃｄｅｆｇｈ"
+      8, "➕➖➖➖➖➖➖➖"
+      7, "➖➕➖➖➖➕➖➖"
+      6, "➖➖➕➕➕➖➖➖"
+      5, "➖➖➕♕➕➕➕➕"
+      4, "➖➖➖➕➕➖➖➖"
+      3, "➖➖➖➕➖➖➖➖"
+      2, "➖➖➖➕➖➖➖➖" ]
+
+[<Fact>]
+let ``Move king to an empty square adjacent`` () =
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
       6, "➖➖➕➕➕➖➖➖"
       5, "➖➖➕♔➕➖➖➖"
-      4, "➖➖➕➕➕➖➖➖"
-      3, "➖➖➖➖➖➖➖➖"
-      2, "➖➖➖➖➖➖➖➖"
-      1, "➖➖➖➖➖➖➖➖" ]
+      4, "➖➖➕➕➕➖➖➖" ]
+
+[<Fact>]
+let ``Reject moving king when blocked`` () =
+  testWhitePieceMove "d5" [
+      9, "ａｂｃｄｅｆｇｈ"
+      6, "➖➖♙♙♙➖➖➖"
+      5, "➖➖♙♔♙➖➖➖"
+      4, "➖➖♙♙♙➖➖➖" ]
+
+[<Fact>]
+let ``Move king capturing adversary piece`` () =
+  testWhitePieceMove "d5" [
+      // Board
+      9, "ａｂｃｄｅｆｇｈ"
+      6, "➖➖♞♛♞➖➖➖"
+      5, "➖➖♝♔♝➖➖➖"
+      4, "➖➖♜♛♜➖➖➖"
+      // Reachable squares
+      9, "ａｂｃｄｅｆｇｈ"
+      6, "➖➖➕➕➕➖➖➖"
+      5, "➖➖➕♔➕➖➖➖"
+      4, "➖➖➕➕➕➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving pawn to a reachable square occupied by another own piece`` () =
@@ -208,6 +257,4 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
       4, "➖♙➕♙➖➖➖➖"
       3, "➖➖♙➖➖➖➖➖" ]
 
-// TODO: Knight can jump
-// TODO: Knight, Bishop, Rook, Queen, King capturing adversary piece
 // TODO: Pawn promoted to Queen
