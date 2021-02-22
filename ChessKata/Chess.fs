@@ -18,7 +18,9 @@ let allSquareNotations: SquareNotation list =
 type PieceSymbol = char
 type Piece = King | Queen | Rook | Bishop | Knight | Pawn
 type Color = Black | White
-type Move = Forward | Rectilinear of int | Diagonal of int | Jump | Other
+
+type Path = { NumberOfSquares: int; InsidePath: Square list }
+type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
 
 type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
@@ -68,6 +70,17 @@ module Square =
       Rank     = rank
     }
 
+  let add (fileDiff, rankDiff) square =
+    let file =
+      int square.File
+      |> (+) fileDiff
+      |> enum<File>
+    let rank =
+      int square.Rank
+      |> (+) rankDiff
+      |> enum<Rank>
+    create file rank
+
 module Game =
   let addPiece pieceSymbol squareNotation (game: Game) : Game =
     let square = squareNotation |> Square.parse
@@ -90,10 +103,17 @@ module Game =
     if isForward then
       Forward
     else
+      let computePath numberOfSquares =
+        let fullPath = List.init (numberOfSquares + 1) (fun i -> startSquare |> Square.add (i * sign file, i * sign rank))
+        {
+          NumberOfSquares = numberOfSquares
+          InsidePath      = trimList fullPath
+        }
+
       match abs file, abs rank with
-      | 0, r -> Rectilinear r
-      | f, 0 -> Rectilinear f
-      | f, r when f = r -> Diagonal f
+      | 0, r -> Rectilinear (computePath r)
+      | f, 0 -> Rectilinear (computePath f)
+      | f, r when f = r -> Diagonal (computePath f)
       | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
       | _ -> Other
 
@@ -124,18 +144,26 @@ module Game =
     let checkPieceMove { Color = turn; Piece = piece } move targetPiece =
       match piece, move with
       | Knight, Jump
-      | Bishop, Diagonal _
-
       | Rook, Forward
-      | Rook, Rectilinear _
-
       | Queen, Forward
+      | King, Forward
+      | King, Diagonal { NumberOfSquares = 1 }
+      | King, Rectilinear { NumberOfSquares = 1 }
+        -> Ok ()
+
+      | Bishop, Diagonal { InsidePath = insidePath } ->
+        let blockingPieces =
+          insidePath
+          |> List.choose (fun x -> game.Board |> Map.tryFind x)
+        if blockingPieces |> List.isEmpty then
+          Ok ()
+        else
+          Error "move not allowed"
+
+      | Rook, Rectilinear _
       | Queen, Diagonal _
       | Queen, Rectilinear _
-
-      | King, Forward
-      | King, Diagonal 1
-      | King, Rectilinear 1
+      // TODO RDE: check blockage
         -> Ok ()
 
       | Pawn, Forward ->
@@ -145,7 +173,7 @@ module Game =
         | _
           -> Error "move not allowed"
 
-      | Pawn, Diagonal 1 ->
+      | Pawn, Diagonal { NumberOfSquares = 1 } ->
         match targetPiece with
         | Some { Color = targetColor } when targetColor <> turn
           -> Ok () // Capture adversary piece

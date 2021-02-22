@@ -77,7 +77,7 @@ let ``Reject moving black pawn to an empty square not reachable forward`` () =
       4, "➖➖➖➖➕➖➖➖" ]
 
 [<Fact>]
-let ``Reject moving knight to an empty square not reachable by jump`` () =
+let ``move knight to an empty square reachable by jump`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
       7, "➖➖➕➖➕➖➖➖"
@@ -87,7 +87,7 @@ let ``Reject moving knight to an empty square not reachable by jump`` () =
       3, "➖➖➕➖➕➖➖➖" ]
 
 [<Fact>]
-let ``Reject moving bishop to an empty square not in diagonal`` () =
+let ``move bishop to an empty square in diagonal`` () =
   testWhitePieceMove "d4" [
       9, "ａｂｃｄｅｆｇｈ"
       8, "➖➖➖➖➖➖➖➕"
@@ -98,6 +98,17 @@ let ``Reject moving bishop to an empty square not in diagonal`` () =
       3, "➖➖➕➖➕➖➖➖"
       2, "➖➕➖➖➖➕➖➖"
       1, "➕➖➖➖➖➖➕➖" ]
+
+[<Fact>]
+let ``Reject moving bishop when blocked on the way`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 4 "➖➖➖♗➖➖➖➖"
+    |> addRank 3 "➖➖♙➖➖➖➖➖"
+    |> addRank 2 "➖❓➖➖➖➖➖➖"
+  let result = game |> Game.movePiece "d4" "b2"
+  result =! Error "move not allowed"
 
 [<Fact>]
 let ``Reject moving rook to an empty square not rectilinear`` () =
@@ -159,7 +170,7 @@ let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
   testWhitePieceMove "c3" [
       9, "ａｂｃｄｅｆｇｈ"
       4, "➖➕➕➕➖➖➖➖" // Can capture in both diagonal or go forward
-      4, "➖♟➖♟➖➖➖➖" // Black
+      4, "➖♟➖♟➖➖➖➖" // Black pawns
       3, "➖➖♙➖➖➖➖➖" ]
 
 [<Fact>]
@@ -170,7 +181,6 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
       3, "➖➖♙➖➖➖➖➖" ]
 
 // TODO: Pawn promoted to Queen
-// TODO: Pawn blocked ahead cannot move
 // TODO: Knight can jump
 // TODO: Bishop, Rook, Queen, King blocked before destination cannot move
 // TODO: Knight, Bishop, Rook, Queen, King capturing adversary piece
