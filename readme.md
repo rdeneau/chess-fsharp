@@ -20,18 +20,22 @@ Add a piece at a given square in the classical 8x8 board
 
 Move a piece specified by its square to a destination square, verifying the rules of the game:
 
-- [x] Verify that there is a piece at the given square and of a the **turn** color, *White* or *Black*
+- [x] Verify that there is a piece at the given square and of a the **Turn** color, *White* or *Black*
 - [x] Respect the move allowed for the given piece
-- [ ] Handle *Pawn* promoted to *Queen*
-- [ ] Handle blockage by another piece
-- [ ] Handle capture of an adversary piece
+- [x] Handle *Pawn* promoted to *Queen*
+- [x] Handle blockage on the way by another piece
+- [x] Handle capture of an adversary piece, including *Pawn* capturing in diagonal
 
-### 🎁 Bonus rules
+## 3. Check
 
-- [ ] Handle pawn capture [en passant](https://en.wikipedia.org/wiki/En_passant)
+- [ ] Detect [*Check*](https://en.wikipedia.org/wiki/Check_(chess))
+- [ ] Reject *King* move ending up in *Check*
+
+## 4. Move extra rules
+
 - [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling) move
+- [ ] Handle pawn capture [en passant](https://en.wikipedia.org/wiki/En_passant)
 
-## 3. End game
+## 5. End game
 
-- [ ] Detect **check**
 - [ ] Detect **checkmate**
