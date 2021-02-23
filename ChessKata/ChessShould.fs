@@ -242,7 +242,7 @@ let ``Reject moving pawn to a reachable but not capturable square occupied by ad
       3, "➖➖➕➖➖➖➖➖"
       2, "➖➖♙➖➖➖➖➖" ]
 
-[<Fact(Skip = "TODO")>]
+[<Fact>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
   testWhitePieceMove "c3" [
       9, "ａｂｃｄｅｆｇｈ"
@@ -257,4 +257,13 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
       4, "➖♙➕♙➖➖➖➖"
       3, "➖➖♙➖➖➖➖➖" ]
 
-// TODO: Pawn promoted to Queen
+[<Fact>]
+let ``Promote white pawn moved to 8th rank`` () =
+  let game = emptyGame |> Game.addPiece '♙' "a7"
+  (game |> Game.movePiece "a7" "a8") =! Ok (emptyGame |> Game.addPiece '♕' "a8")
+
+[<Fact>]
+let ``Promote black pawn moved to 1th rank`` () =
+  let emptyBlackGame = { emptyGame with Turn = Black }
+  let game = emptyBlackGame |> Game.addPiece '♟' "b2"
+  (game |> Game.movePiece "b2" "b1") =! Ok (emptyBlackGame |> Game.addPiece '♛' "b1")

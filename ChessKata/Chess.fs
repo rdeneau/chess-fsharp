@@ -193,10 +193,16 @@ module Game =
       let move = computeMove pieceSquare targetSquare movedPiece.Color
       do! checkPieceMove movedPiece move targetPiece
 
+      let promotedPiece =
+        match (movedPiece, targetSquare) with
+        | { Color = White; Piece = Pawn }, { Rank = Rank._8 } -> ColoredPiece.parse '♕'
+        | { Color = Black; Piece = Pawn }, { Rank = Rank._1 } -> ColoredPiece.parse '♛'
+        | _ -> movedPiece
+
       let board =
         game.Board
         |> Map.remove pieceSquare
-        |> Map.add targetSquare movedPiece
+        |> Map.add targetSquare promotedPiece
       return { game with Board = board }
     }
 
