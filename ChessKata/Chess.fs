@@ -25,6 +25,8 @@ type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
 type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
+type Check = Check of Square list | Mate
+
 module ColoredPiece =
   let tryParse (symbol: PieceSymbol) =
     match symbol with
@@ -82,7 +84,7 @@ module Square =
     create file rank
 
 module Game =
-  let addPiece pieceSymbol squareNotation (game: Game) : Game =
+  let addPiece pieceSymbol squareNotation game : Game =
     let square = squareNotation |> Square.parse
     let piece = pieceSymbol |> ColoredPiece.parse
     let board = game.Board |> Map.add square piece
@@ -206,7 +208,7 @@ module Game =
       return { game with Board = board }
     }
 
-  let reposition (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Game =
+  let reposition pieceLocation targetLocation game : Game =
     let pieceSquare  = Square.parse pieceLocation
     let targetSquare = Square.parse targetLocation
     let piece =
@@ -217,3 +219,34 @@ module Game =
       |> Map.remove pieceSquare
       |> Map.add targetSquare piece
     { game with Board = board }
+
+  let tryLocatePiece pieceSymbol game : Square option =
+    game.Board
+    |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
+
+  let check game : (Check * Color) list =
+    let checkPlayer king : (Check * Color) option =
+      let kingSquare =
+        match game |> tryLocatePiece king.Symbol with
+        | Some x -> x
+        | None -> failwith $"{king.Color} King not found"
+
+      let canMoveToKing adversarySquare : bool =
+        let result = game |> movePiece adversarySquare.Notation kingSquare.Notation
+        match result with
+        | Ok _ -> true
+        | _ -> false
+
+      let checks =
+        game.Board
+        |> Map.keys
+        |> Seq.filter canMoveToKing
+        |> List.ofSeq
+
+      match checks with
+      | [] -> None
+      | xs -> Some (Check xs, king.Color)
+
+    ['♔';'♚']
+    |> List.map ColoredPiece.parse
+    |> List.choose checkPlayer

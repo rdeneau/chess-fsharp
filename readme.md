@@ -38,4 +38,4 @@ Move a piece specified by its square to a destination square, verifying the rule
 
 ## 5. End game
 
-- [ ] Detect **checkmate**
+- [ ] Detect [Checkmate](https://en.wikipedia.org/wiki/Checkmate)

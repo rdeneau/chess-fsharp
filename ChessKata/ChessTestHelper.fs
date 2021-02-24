@@ -5,6 +5,8 @@ open Swensen.Unquote
 
 let emptyGame = { Board = Map.empty; Turn = White }
 
+let square = Square.parse
+
 let parseRankSymbols (rankNum: int) (symbols: string) =
   let rank = rankNum |> int |> enum<Rank>
   let mapSymbol (symbol, file) =

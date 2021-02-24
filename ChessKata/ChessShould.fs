@@ -267,3 +267,45 @@ let ``Promote black pawn moved to 1th rank`` () =
   let emptyBlackGame = { emptyGame with Turn = Black }
   let game = emptyBlackGame |> Game.addPiece '♟' "b2"
   (game |> Game.movePiece "b2" "b1") =! Ok (emptyBlackGame |> Game.addPiece '♛' "b1")
+
+[<Fact>]
+let ``Indicate no checks`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖♚➖➖➖➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖♙➖➖➖"
+    |> addRank 3 "➖➖➖➖➖♗➖➖"
+    |> addRank 2 "➖➖♙➖➖➖➖➖"
+    |> addRank 1 "➖➖♖➖♔➖➖➖"
+  let result = game |> Game.check
+  result =! []
+
+[<Fact>]
+let ``Indicate black in check once`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖♚➖➖➖➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖♙➖➖➖"
+    |> addRank 3 "➖➖➖➖➖♗➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖♖➖♔➖➖➖"
+  let result = game |> Game.check
+  result =! [Check [square "c1"], Black]
+
+[<Fact>]
+let ``Indicate black in check twice`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖♚➖➖➖➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖➖➖➖➖"
+    |> addRank 3 "➖➖➖➖➖♗➖➖"
+    |> addRank 2 "➖➖➖➖♙➖➖➖"
+    |> addRank 1 "➖➖♖➖♔➖➖➖"
+  let result = game |> Game.check
+  result =! [Check [square "c1";square "f3"], Black]
