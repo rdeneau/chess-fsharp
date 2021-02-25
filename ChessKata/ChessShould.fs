@@ -45,7 +45,7 @@ let ``Reject moving a piece of a player for which it's not the turn to play`` ()
   checkWith Black "e2" "e4" "not White's turn to play"
 
 [<Fact>]
-let ``Reject moving white pawn to an empty square not reachable forward`` () =
+let ``Move white pawn forward`` () =
   testWhitePieceMove "c2" [
       9, "ａｂｃｄｅｆｇｈ"
       4, "➖➖➕➖➖➖➖➖"
@@ -61,7 +61,7 @@ let ``Reject moving white pawn to an empty square not reachable forward`` () =
       4, "➖➖➖➖♙➖➖➖" ]
 
 [<Fact>]
-let ``Reject moving black pawn to an empty square not reachable forward`` () =
+let ``Move black pawn forward`` () =
   testBlackPieceMove "c7" [
       9, "ａｂｃｄｅｆｇｈ"
       7, "➖➖♟➖➖➖➖➖"
@@ -259,14 +259,15 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
 
 [<Fact>]
 let ``Promote white pawn moved to 8th rank`` () =
-  let game = emptyGame |> Game.addPiece '♙' "a7"
-  (game |> Game.movePiece "a7" "a8") =! Ok (emptyGame |> Game.addPiece '♕' "a8")
+  let game     = emptyGame |> Game.addPiece '♙' "a7"
+  let expected = emptyGame |> Game.addPiece '♕' "a8" |> Game.toggleTurn
+  (game |> Game.movePiece "a7" "a8") =! Ok expected
 
 [<Fact>]
 let ``Promote black pawn moved to 1th rank`` () =
-  let emptyBlackGame = { emptyGame with Turn = Black }
-  let game = emptyBlackGame |> Game.addPiece '♟' "b2"
-  (game |> Game.movePiece "b2" "b1") =! Ok (emptyBlackGame |> Game.addPiece '♛' "b1")
+  let game     = emptyGame |> Game.addPiece '♟' "b2" |> Game.toggleTurn
+  let expected = emptyGame |> Game.addPiece '♛' "b1"
+  (game |> Game.movePiece "b2" "b1") =! Ok expected
 
 [<Fact>]
 let ``Indicate no checks`` () =
@@ -309,5 +310,3 @@ let ``Indicate black in check twice`` () =
     |> addRank 1 "➖➖♖➖♔➖➖➖"
   let result = game |> Game.check
   result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
-
-// TODO: alternate Turn after each move

@@ -75,7 +75,7 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
   reachableSquares
   |> List.iter (fun targetSquare ->
        let result = game |> Game.movePiece pieceSquare targetSquare
-       result =! Ok (game |> Game.reposition pieceSquare targetSquare) )
+       result =! Ok (game |> Game.reposition pieceSquare targetSquare |> Game.toggleTurn) )
 
   let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
   notReachableSquares

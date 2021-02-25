@@ -91,6 +91,13 @@ module Game =
     let board = game.Board |> Map.add square piece
     { game with Board = board }
 
+  let toggleTurn game : Game =
+    let nextTurn =
+      match game.Turn with
+      | White -> Black
+      | Black -> White
+    { game with Turn = nextTurn }
+
   let private computeMove startSquare endSquare color =
     let file = int (endSquare.File - startSquare.File)
     let rank = int (endSquare.Rank - startSquare.Rank)
@@ -206,7 +213,7 @@ module Game =
         game.Board
         |> Map.remove pieceSquare
         |> Map.add targetSquare promotedPiece
-      return { game with Board = board } // TODO: change Turn
+      return { game with Board = board } |> toggleTurn
     }
 
   let reposition pieceLocation targetLocation game : Game =
