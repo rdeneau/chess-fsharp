@@ -1,7 +1,13 @@
-module ChessKata.ChessTestHelper
+module ChessKata.Tests.ChessHelpers
 
-open Chess
+open ChessKata.Common.Helpers
+open ChessKata.Domain
 open Swensen.Unquote
+
+let allSquareNotations: SquareNotation list =
+  [for file in enumValues<File> do
+   for rank in enumValues<Rank> do
+     yield $"{file}{int rank}" ]
 
 let emptyGame = { Board = Map.empty; Turn = White }
 

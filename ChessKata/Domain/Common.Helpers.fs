@@ -1,4 +1,4 @@
-module Helpers
+module ChessKata.Common.Helpers
 
 open System
 open System.Text.RegularExpressions

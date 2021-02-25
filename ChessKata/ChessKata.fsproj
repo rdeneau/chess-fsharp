@@ -8,10 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Helpers.fs" />
-    <Compile Include="Chess.fs" />
-    <Compile Include="ChessTestHelper.fs" />
-    <Compile Include="ChessShould.fs" />
+    <Compile Include="Domain\Common.Helpers.fs" />
+    <Compile Include="Domain\Chess.Piece.fs" />
+    <Compile Include="Domain\Chess.Square.fs" />
+    <Compile Include="Domain\Chess.Game.fs" />
+    <Compile Include="Tests\ChessHelpers.fs" />
+    <Compile Include="Tests\ChessShould.fs" />
   </ItemGroup>
 
   <ItemGroup>

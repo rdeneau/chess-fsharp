@@ -1,94 +1,15 @@
-module ChessKata.Chess
+namespace ChessKata.Domain
 
+open ChessKata.Common.Helpers
 open FSharpPlus
-open System
 
-open Helpers
-
-type File = a = 1 | b = 2 | c = 3 | d = 4 | e = 5 | f = 6 | g = 7 | h = 8 // Column
-type Rank = _1 = 1 | _2 = 2 | _3 = 3 | _4 = 4 | _5 = 5 | _6 = 6 | _7 = 7 | _8 = 8 // Row
-type SquareNotation = string // E.g. "a1"
-type Square = { Notation: SquareNotation; File: File; Rank: Rank }
-
-let allSquareNotations: SquareNotation list =
-  [for file in enumValues<File> do
-   for rank in enumValues<Rank> do
-     yield $"{file}{int rank}" ]
-
-type PieceSymbol = char
-type Piece = King | Queen | Rook | Bishop | Knight | Pawn
-type Color = Black | White
-
-module Color =
-  let toggle color : Color =
-    match color with
-    | White -> Black
-    | Black -> White
-
-type Path = { NumberOfSquares: int; InsidePath: Square list }
-type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
-
-type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
-type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
-
-type CheckInfo = { Of: Color; By: Square list }
 type CheckResult = Check of CheckInfo // TODO | Mate
+ and CheckInfo = { Of: Color; By: Square list }
 
-module ColoredPiece =
-  let tryParse (symbol: PieceSymbol) =
-    match symbol with
-    | '♔' -> Some { Symbol = symbol; Color = White; Piece = King }
-    | '♕' -> Some { Symbol = symbol; Color = White; Piece = Queen }
-    | '♖' -> Some { Symbol = symbol; Color = White; Piece = Rook }
-    | '♗' -> Some { Symbol = symbol; Color = White; Piece = Bishop }
-    | '♘' -> Some { Symbol = symbol; Color = White; Piece = Knight }
-    | '♙' -> Some { Symbol = symbol; Color = White; Piece = Pawn }
-    | '♚' -> Some { Symbol = symbol; Color = Black; Piece = King }
-    | '♛' -> Some { Symbol = symbol; Color = Black; Piece = Queen }
-    | '♜' -> Some { Symbol = symbol; Color = Black; Piece = Rook }
-    | '♝' -> Some { Symbol = symbol; Color = Black; Piece = Bishop }
-    | '♞' -> Some { Symbol = symbol; Color = Black; Piece = Knight }
-    | '♟' -> Some { Symbol = symbol; Color = Black; Piece = Pawn }
-    | _ -> None
+type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
+ and Path = { NumberOfSquares: int; InsidePath: Square list }
 
-  let parse (symbol: PieceSymbol) =
-    match tryParse symbol with
-    | Some square -> square
-    | None -> failwith "invalid coordinate"
-
-module Square =
-  let tryParse (notation: SquareNotation) =
-    match notation with
-    | Regex @"([a-h])([1-8])" [ file; rank ] ->
-      Some {
-        Notation = notation
-        File     = Enum.Parse(typeof<File>, file) :?> File
-        Rank     = rank |> int |> enum<Rank>
-      }
-    | _ -> None
-
-  let parse (notation: SquareNotation) =
-    match tryParse notation with
-    | Some square -> square
-    | None -> failwith "invalid coordinate"
-
-  let create file rank =
-    {
-      Notation = $"{file}{int rank}"
-      File     = file
-      Rank     = rank
-    }
-
-  let add (fileDiff, rankDiff) square =
-    let file =
-      int square.File
-      |> (+) fileDiff
-      |> enum<File>
-    let rank =
-      int square.Rank
-      |> (+) rankDiff
-      |> enum<Rank>
-    create file rank
+type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 module Game =
   let addPiece pieceSymbol squareNotation game : Game =
@@ -98,7 +19,7 @@ module Game =
     { game with Board = board }
 
   let reposition pieceLocation targetLocation game : Game =
-    let pieceSquare  = Square.parse pieceLocation
+    let pieceSquare = Square.parse pieceLocation
     let targetSquare = Square.parse targetLocation
     let piece =
       game.Board

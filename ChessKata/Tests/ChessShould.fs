@@ -1,7 +1,7 @@
-module ChessKata.ChessShould
+module ChessKata.Tests.ChessShould
 
-open Chess
-open ChessTestHelper
+open ChessKata.Domain
+open ChessKata.Tests.ChessHelpers
 open FsUnit
 open Swensen.Unquote
 open Xunit
