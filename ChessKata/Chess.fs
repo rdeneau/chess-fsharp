@@ -19,6 +19,12 @@ type PieceSymbol = char
 type Piece = King | Queen | Rook | Bishop | Knight | Pawn
 type Color = Black | White
 
+module Color =
+  let toggle color : Color =
+    match color with
+    | White -> Black
+    | Black -> White
+
 type Path = { NumberOfSquares: int; InsidePath: Square list }
 type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
 
@@ -92,11 +98,7 @@ module Game =
     { game with Board = board }
 
   let toggleTurn game : Game =
-    let nextTurn =
-      match game.Turn with
-      | White -> Black
-      | Black -> White
-    { game with Turn = nextTurn }
+    { game with Turn = game.Turn |> Color.toggle }
 
   let private computeMove startSquare endSquare color =
     let file = int (endSquare.File - startSquare.File)
@@ -232,36 +234,37 @@ module Game =
     game.Board
     |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
 
-  // TODO
+  /// Check if the given player is in check or mate
+  let checkPlayer king game : CheckResult option =
+    let kingSquare =
+      match game |> tryLocatePiece king.Symbol with
+      | Some x -> x
+      | None -> failwith $"{king.Color} King not found"
+
+    let canMoveToKing adversarySquare : bool =
+      let result =
+        game
+        |> toggleTurn
+        |> movePiece adversarySquare.Notation kingSquare.Notation
+      match result with
+      | Ok _ -> true
+      | _ -> false
+
+    let checks =
+      game.Board
+      |> Map.keys
+      |> Seq.filter canMoveToKing
+      |> List.ofSeq
+
+    match checks with
+    | [] -> None
+    | xs -> Some (Check { Of = king.Color; By = xs })
+
   /// Check if the current player is in check or mate
   let check game : CheckResult option =
-    let checkPlayer king : CheckResult option =
-      let kingSquare =
-        match game |> tryLocatePiece king.Symbol with
-        | Some x -> x
-        | None -> failwith $"{king.Color} King not found"
-
-      let canMoveToKing adversarySquare : bool =
-        let result = game |> movePiece adversarySquare.Notation kingSquare.Notation
-        match result with
-        | Ok _ -> true
-        | _ -> false
-
-      let checks =
-        game.Board
-        |> Map.keys
-        |> Seq.filter canMoveToKing
-        |> List.ofSeq
-
-      match checks with
-      | [] -> None
-      | xs -> Some (Check { Of = king.Color; By = xs })
-
-    let tmp =
+    let king =
       ['♔';'♚']
       |> List.map ColoredPiece.parse
-      |> List.choose checkPlayer
+      |> List.find (fun x -> x.Color = game.Turn)
 
-    match tmp with
-    | [x] -> Some x
-    | _ -> None
+    game |> checkPlayer king

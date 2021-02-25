@@ -280,6 +280,7 @@ let ``Indicate no checks`` () =
     |> addRank 3 "➖➖➖➖➖♗➖➖"
     |> addRank 2 "➖➖♙➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
+    |> Game.toggleTurn
   let result = game |> Game.check
   result =! None
 
@@ -294,6 +295,7 @@ let ``Indicate black in check once`` () =
     |> addRank 3 "➖➖➖➖➖♗➖➖"
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
+    |> Game.toggleTurn
   let result = game |> Game.check
   result =! Some (Check { Of = Black; By = [square "c1"] })
 
@@ -308,5 +310,8 @@ let ``Indicate black in check twice`` () =
     |> addRank 3 "➖➖➖➖➖♗➖➖"
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
+    |> Game.toggleTurn
   let result = game |> Game.check
   result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
+
+// TODO: reject move leading to own check
