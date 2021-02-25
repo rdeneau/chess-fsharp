@@ -28,14 +28,14 @@ Move a piece specified by its square to a destination square, verifying the rule
 
 ## 3. Check
 
-- [ ] Detect [*Check*](https://en.wikipedia.org/wiki/Check_(chess))
-- [ ] Reject *King* move ending up in *Check*
+- [x] Detect [*Check*](https://en.wikipedia.org/wiki/Check_(chess))
+- [ ] Reject any move ending up in own *Check*
 
-## 4. Move extra rules
+## 4. Extra moves *(past moves needed)*
 
 - [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling) move
 - [ ] Handle pawn capture [en passant](https://en.wikipedia.org/wiki/En_passant)
 
 ## 5. End game
 
-- [ ] Detect [Checkmate](https://en.wikipedia.org/wiki/Checkmate)
+- [ ] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
