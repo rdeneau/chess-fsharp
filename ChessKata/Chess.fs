@@ -25,7 +25,8 @@ type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
 type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
-type Check = Check of Square list | Mate
+type CheckInfo = { Of: Color; By: Square list }
+type CheckResult = Check of CheckInfo | Mate
 
 module ColoredPiece =
   let tryParse (symbol: PieceSymbol) =
@@ -205,7 +206,7 @@ module Game =
         game.Board
         |> Map.remove pieceSquare
         |> Map.add targetSquare promotedPiece
-      return { game with Board = board }
+      return { game with Board = board } // TODO: change Turn
     }
 
   let reposition pieceLocation targetLocation game : Game =
@@ -224,8 +225,10 @@ module Game =
     game.Board
     |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
 
-  let check game : (Check * Color) list =
-    let checkPlayer king : (Check * Color) option =
+  // TODO
+  /// Check if the current player is in check or mate
+  let check game : CheckResult option =
+    let checkPlayer king : CheckResult option =
       let kingSquare =
         match game |> tryLocatePiece king.Symbol with
         | Some x -> x
@@ -245,8 +248,13 @@ module Game =
 
       match checks with
       | [] -> None
-      | xs -> Some (Check xs, king.Color)
+      | xs -> Some (Check { Of = king.Color; By = xs })
 
-    ['♔';'♚']
-    |> List.map ColoredPiece.parse
-    |> List.choose checkPlayer
+    let tmp =
+      ['♔';'♚']
+      |> List.map ColoredPiece.parse
+      |> List.choose checkPlayer
+
+    match tmp with
+    | [x] -> Some x
+    | _ -> None

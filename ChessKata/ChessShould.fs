@@ -280,7 +280,7 @@ let ``Indicate no checks`` () =
     |> addRank 2 "➖➖♙➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
   let result = game |> Game.check
-  result =! []
+  result =! None
 
 [<Fact>]
 let ``Indicate black in check once`` () =
@@ -294,7 +294,7 @@ let ``Indicate black in check once`` () =
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
   let result = game |> Game.check
-  result =! [Check [square "c1"], Black]
+  result =! Some (Check { Of = Black; By = [square "c1"] })
 
 [<Fact>]
 let ``Indicate black in check twice`` () =
@@ -305,7 +305,9 @@ let ``Indicate black in check twice`` () =
     |> addRank 5 "➖➖➖➖➖➖➖➖"
     |> addRank 4 "➖➖➖➖➖➖➖➖"
     |> addRank 3 "➖➖➖➖➖♗➖➖"
-    |> addRank 2 "➖➖➖➖♙➖➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
   let result = game |> Game.check
-  result =! [Check [square "c1";square "f3"], Black]
+  result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
+
+// TODO: alternate Turn after each move
