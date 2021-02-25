@@ -32,7 +32,7 @@ type ColoredPiece = { Color: Color; Piece: Piece; Symbol: PieceSymbol }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 type CheckInfo = { Of: Color; By: Square list }
-type CheckResult = Check of CheckInfo | Mate
+type CheckResult = Check of CheckInfo // TODO | Mate
 
 module ColoredPiece =
   let tryParse (symbol: PieceSymbol) =
@@ -97,6 +97,22 @@ module Game =
     let board = game.Board |> Map.add square piece
     { game with Board = board }
 
+  let reposition pieceLocation targetLocation game : Game =
+    let pieceSquare  = Square.parse pieceLocation
+    let targetSquare = Square.parse targetLocation
+    let piece =
+      game.Board
+      |> Map.find pieceSquare
+    let board =
+      game.Board
+      |> Map.remove pieceSquare
+      |> Map.add targetSquare piece
+    { game with Board = board }
+
+  let tryLocatePiece pieceSymbol game : Square option =
+    game.Board
+    |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
+
   let toggleTurn game : Game =
     { game with Turn = game.Turn |> Color.toggle }
 
@@ -129,7 +145,7 @@ module Game =
       | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
       | _ -> Other
 
-  let movePiece (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
+  let private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
     let tryFindPieceAt square = game.Board |> Map.tryFind square
 
     let checkSquaresDistinct =
@@ -218,22 +234,6 @@ module Game =
       return { game with Board = board } |> toggleTurn
     }
 
-  let reposition pieceLocation targetLocation game : Game =
-    let pieceSquare  = Square.parse pieceLocation
-    let targetSquare = Square.parse targetLocation
-    let piece =
-      game.Board
-      |> Map.find pieceSquare
-    let board =
-      game.Board
-      |> Map.remove pieceSquare
-      |> Map.add targetSquare piece
-    { game with Board = board }
-
-  let tryLocatePiece pieceSymbol game : Square option =
-    game.Board
-    |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
-
   /// Check if the given player is in check or mate
   let checkPlayer king game : CheckResult option =
     let kingSquare =
@@ -245,7 +245,7 @@ module Game =
       let result =
         game
         |> toggleTurn
-        |> movePiece adversarySquare.Notation kingSquare.Notation
+        |> movePieceWithoutFinalKingCheck adversarySquare.Notation kingSquare.Notation
       match result with
       | Ok _ -> true
       | _ -> false
@@ -268,3 +268,16 @@ module Game =
       |> List.find (fun x -> x.Color = game.Turn)
 
     game |> checkPlayer king
+
+  let movePiece pieceLocation targetLocation game : Result<Game, string> =
+    monad' {
+      let! newGame =
+        game |> movePieceWithoutFinalKingCheck pieceLocation targetLocation
+      return!
+        match newGame |> toggleTurn |> check with
+        | None ->
+          Ok newGame
+        | Some (Check check) ->
+          let checkers = check.By |> List.map (fun x -> x.Notation)
+          Error $"move to {targetLocation} not allowed: in check by {checkers}"
+    }

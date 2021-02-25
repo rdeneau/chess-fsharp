@@ -48,76 +48,89 @@ let ``Reject moving a piece of a player for which it's not the turn to play`` ()
 let ``Move white pawn forward`` () =
   testWhitePieceMove "c2" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖➖➖➖♚"
       4, "➖➖➕➖➖➖➖➖"
       3, "➖➖➕➖➖➖➖➖"
-      2, "➖➖♙➖➖➖➖➖" ]
+      2, "➖➖♙➖♔➖➖➖" ]
   testWhitePieceMove "d3" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖➖➖➖♚"
       4, "➖➖➖➕➖➖➖➖"
-      3, "➖➖➖♙➖➖➖➖" ]
+      3, "➖➖➖♙♔➖➖➖" ]
   testWhitePieceMove "e4" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖➖➖➖♚"
       5, "➖➖➖➖➕➖➖➖"
-      4, "➖➖➖➖♙➖➖➖" ]
+      4, "➖➖➖♔♙➖➖➖" ]
 
 [<Fact>]
 let ``Move black pawn forward`` () =
   testBlackPieceMove "c7" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖♚➖➖➖"
       7, "➖➖♟➖➖➖➖➖"
       6, "➖➖➕➖➖➖➖➖"
-      5, "➖➖➕➖➖➖➖➖" ]
+      5, "➖➖➕➖➖➖➖♔" ]
   testBlackPieceMove "d6" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖♚➖➖➖"
       6, "➖➖➖♟➖➖➖➖"
-      5, "➖➖➖➕➖➖➖➖" ]
+      5, "➖➖➖➕➖➖➖♔" ]
   testBlackPieceMove "e5" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖♚➖➖➖"
       5, "➖➖➖➖♟➖➖➖"
-      4, "➖➖➖➖➕➖➖➖" ]
+      4, "➖➖➖➖➕➖➖♔" ]
 
 [<Fact>]
-let ``move knight to an empty square reachable by jump`` () =
+let ``Move knight to an empty square reachable by jump`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖♚➖➖➖"
       7, "➖➖➕➖➕➖➖➖"
       6, "➖➕➖➖➖➕➖➖"
       5, "➖➖➖♘➖➖➖➖"
       4, "➖➕➖➖➖➕➖➖"
-      3, "➖➖➕➖➕➖➖➖" ]
+      3, "➖➖➕➖➕➖➖➖"
+      2, "➖➖➖➖➖➖➖➖"
+      1, "➖➖➖➖♔➖➖➖" ]
 
 [<Fact>]
-let ``move knight jumping over piece`` () =
+let ``Move knight jumping over piece`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
+      8, "➖➖➖➖♚➖➖➖"
       7, "➖➖➕➖➕➖➖➖"
       6, "➖➕♙♙♙➕➖➖"
       5, "➖➖♙♘♙➖➖➖"
       4, "➖➕♙♙♙➕➖➖"
-      3, "➖➖➕➖➕➖➖➖" ]
+      3, "➖➖➕➖➕➖➖➖"
+      2, "➖➖➖➖➖➖➖➖"
+      1, "➖➖➖➖♔➖➖➖" ]
 
 [<Fact>]
-let ``move bishop to an empty square in diagonal`` () =
+let ``Move bishop to an empty square in diagonal`` () =
   testWhitePieceMove "d4" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "➖➖➖➖➖➖➖➕"
+      8, "➖➖➖➖♚➖➖➕"
       7, "➕➖➖➖➖➖➕➖"
       6, "➖➕➖➖➖➕➖➖"
       5, "➖➖➕➖➕➖➖➖"
       4, "➖➖➖♗➖➖➖➖"
       3, "➖➖➕➖➕➖➖➖"
       2, "➖➕➖➖➖➕➖➖"
-      1, "➕➖➖➖➖➖➕➖" ]
+      1, "➕➖➖➖♔➖➕➖" ]
 
 [<Fact>]
 let ``Reject moving bishop when blocked on the way`` () =
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖➖♚➖"
     |> addRank 4 "➖➖➖♗➖➖➖➖"
     |> addRank 3 "➖➖♙➖➖➖➖➖"
     |> addRank 2 "➖❓➖➖➖♙➖➖"
-    |> addRank 1 "➖➖➖➖➖➖❓➖"
+    |> addRank 1 "➖➖➖♔➖➖❓➖"
   (game |> Game.movePiece "d4" "b2") =! Error "move not allowed"
   (game |> Game.movePiece "d4" "g1") =! Error "move not allowed"
 
@@ -125,24 +138,25 @@ let ``Reject moving bishop when blocked on the way`` () =
 let ``Move rook to an empty square rectilinear`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "➖➖➖➕➖➖➖➖"
+      8, "➖➖➖➕➖♚➖➖"
       7, "➖➖➖➕➖➖➖➖"
       6, "➖➖➖➕➖➖➖➖"
       5, "➕➕➕♖➕➕➕➕"
       4, "➖➖➖➕➖➖➖➖"
       3, "➖➖➖➕➖➖➖➖"
       2, "➖➖➖➕➖➖➖➖"
-      1, "➖➖➖➕➖➖➖➖" ]
+      1, "➖➖➖➕➖♔➖➖" ]
 
 [<Fact>]
 let ``Reject moving rook when blocked on the way`` () =
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖➖♚➖"
     |> addRank 4 "➖➖➖♖➖➖♙❓"
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖♙➖➖➖➖"
-    |> addRank 1 "➖➖➖❓➖➖➖➖"
+    |> addRank 1 "➖♔➖❓➖➖➖➖"
   (game |> Game.movePiece "d4" "d1") =! Error "move not allowed"
   (game |> Game.movePiece "d4" "h4") =! Error "move not allowed"
 
@@ -150,26 +164,26 @@ let ``Reject moving rook when blocked on the way`` () =
 let ``Move queen to an empty square reachable`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      8, "➕➖➖➕➖➖➕➖"
+      8, "➕➖➖➕➖♚➕➖"
       7, "➖➕➖➕➖➕➖➖"
       6, "➖➖➕➕➕➖➖➖"
       5, "➕➕➕♕➕➕➕➕"
       4, "➖➖➕➕➕➖➖➖"
       3, "➖➕➖➕➖➕➖➖"
       2, "➕➖➖➕➖➖➕➖"
-      1, "➖➖➖➕➖➖➖➕" ]
+      1, "➖➖➖➕➖♔➖➕" ]
 
 [<Fact>]
 let ``Reject moving queen when blocked on the way`` () =
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
-    |> addRank 6 "➖❓➖❓➖❓➖➖"
+    |> addRank 6 "➖❓➖❓➖❓➖♚"
     |> addRank 5 "➖➖♙♙♙➖➖➖"
     |> addRank 4 "❓♙➖♕➖➖♙❓"
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖♙➖♙➖➖"
-    |> addRank 1 "➖➖➖❓➖➖❓➖"
+    |> addRank 1 "➖♔➖❓➖➖❓➖"
 
   ["b6";"d6";"f6";"a4";"h4";"d1";"g1"]
   |> List.iter (fun dest -> (game |> Game.movePiece "d4" dest) =! Error "move not allowed")
@@ -179,13 +193,13 @@ let ``Move queen capturing adversary piece`` () =
   testWhitePieceMove "d5" [
       // Board
       9, "ａｂｃｄｅｆｇｈ"
-      8, "➖➖➖➖➖➖➖➖"
+      8, "➖➖➖♚➖➖➖➖"
       7, "➖➖➖➖➖♟➖➖"
       6, "➖➖➖♟➖➖➖➖"
       5, "➖➖♟♕➖➖➖♟"
       4, "➖➖♘➖♟➖➖➖"
       3, "➖➖➖➖➖➖➖➖"
-      2, "➖➖➖♟➖➖➖➖"
+      2, "➖➖➖♟➖♔➖➖"
       // Reachable squares
       9, "ａｂｃｄｅｆｇｈ"
       8, "➕➖➖➖➖➖➖➖"
@@ -200,7 +214,7 @@ let ``Move queen capturing adversary piece`` () =
 let ``Move king to an empty square adjacent`` () =
   testWhitePieceMove "d5" [
       9, "ａｂｃｄｅｆｇｈ"
-      6, "➖➖➕➕➕➖➖➖"
+      6, "➖➖➕➕➕➖➖♚"
       5, "➖➖➕♔➕➖➖➖"
       4, "➖➖➕➕➕➖➖➖" ]
 
@@ -217,57 +231,83 @@ let ``Move king capturing adversary piece`` () =
   testWhitePieceMove "d5" [
       // Board
       9, "ａｂｃｄｅｆｇｈ"
-      6, "➖➖♞♛♞➖➖➖"
-      5, "➖➖♝♔♝➖➖➖"
-      4, "➖➖♜♛♜➖➖➖"
+      6, "➖➖➖♞➖➖➖♚"
+      5, "➖➖♞♔♞➖➖➖"
+      4, "➖➖➖♞➖➖➖➖"
       // Reachable squares
       9, "ａｂｃｄｅｆｇｈ"
-      6, "➖➖➕➕➕➖➖➖"
+      6, "➖➖➖➕➖➖➖➖"
       5, "➖➖➕♔➕➖➖➖"
-      4, "➖➖➕➕➕➖➖➖" ]
+      4, "➖➖➖➕➖➖➖➖" ]
 
 [<Fact>]
 let ``Reject moving pawn to a reachable square occupied by another own piece`` () =
   testWhitePieceMove "c2" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "➖➖♙➖➖➖➖➖"
+      4, "➖➖♙➖➖➖➖♚"
       3, "➖➖➕➖➖➖➖➖"
-      2, "➖➖♙➖➖➖➖➖" ]
+      2, "➖➖♙➖➖➖➖♔" ]
 
 [<Fact>]
 let ``Reject moving pawn to a reachable but not capturable square occupied by adversary piece`` () =
   testWhitePieceMove "c2" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "➖➖♟➖➖➖➖➖" // Black
+      4, "➖➖♟➖➖➖➖♚" // Black
       3, "➖➖➕➖➖➖➖➖"
-      2, "➖➖♙➖➖➖➖➖" ]
+      2, "➖➖♙➖➖➖➖♔" ]
 
 [<Fact>]
 let ``Move pawn to 1-square diagonal to capture an adversary piece`` () =
   testWhitePieceMove "c3" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "➖➕➕➕➖➖➖➖" // Can capture in both diagonal or go forward
+      4, "➖➕➕➕➖♚➖➖" // Can capture in both diagonal or go forward
       4, "➖♟➖♟➖➖➖➖" // Black pawns
-      3, "➖➖♙➖➖➖➖➖" ]
+      3, "➖➖♙➖➖➖➖♔" ]
 
 [<Fact>]
 let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` () =
   testWhitePieceMove "c3" [
       9, "ａｂｃｄｅｆｇｈ"
-      4, "➖♙➕♙➖➖➖➖"
-      3, "➖➖♙➖➖➖➖➖" ]
-
-[<Fact>]
-let ``Promote white pawn moved to 8th rank`` () =
-  let game     = emptyGame |> Game.addPiece '♙' "a7"
-  let expected = emptyGame |> Game.addPiece '♕' "a8" |> Game.toggleTurn
-  (game |> Game.movePiece "a7" "a8") =! Ok expected
+      4, "➖♙➕♙➖♚➖➖"
+      3, "➖➖♙➖➖➖➖♔" ]
 
 [<Fact>]
 let ``Promote black pawn moved to 1th rank`` () =
-  let game     = emptyGame |> Game.addPiece '♟' "b2" |> Game.toggleTurn
-  let expected = emptyGame |> Game.addPiece '♛' "b1"
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 2 "➖♟➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+    |> Game.toggleTurn
+
+  let expected =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖♛➖➖➖♔➖➖"
+
   (game |> Game.movePiece "b2" "b1") =! Ok expected
+
+[<Fact>]
+let ``Promote white pawn moved to 8th rank`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 7 "♙➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+
+  let expected =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "♕➖➖➖➖♚➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+    |> Game.toggleTurn
+
+  (game |> Game.movePiece "a7" "a8") =! Ok expected
 
 [<Fact>]
 let ``Indicate no checks`` () =
@@ -314,4 +354,30 @@ let ``Indicate black in check twice`` () =
   let result = game |> Game.check
   result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
 
-// TODO: reject move leading to own check
+[<Fact>]
+let ``Indicate white in check`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖➖♚♜➖➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖➖➖➖➖"
+    |> addRank 3 "➖➖➖➖➖➖➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖♔➖➖➖"
+  let result = game |> Game.check
+  result =! Some (Check { Of = White; By = [square "e6"] })
+
+[<Fact>]
+let ``Reject move ending up in own check`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖➖♚♛♜➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖➖➖➖➖"
+    |> addRank 3 "➖➖➖➖➖➖➖➖"
+    |> addRank 2 "➖➖➖➖➖♗➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+  (game |> Game.movePiece "f1" "e1") =! Error "move to e1 not allowed: in check by [e6]" // King puts himself in check
+  (game |> Game.movePiece "f2" "g3") =! Error "move to g3 not allowed: in check by [f6]" // Bishop move puts its king in check

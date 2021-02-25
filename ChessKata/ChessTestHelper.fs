@@ -53,18 +53,6 @@ let reachableInRank (rankNum: int) (symbols: string) : SquareNotation list =
   |> List.choose mapReachable
 
 /// Test that the piece can move only to the specified reachable squares in the given game.
-let testPieceMoveNewV0 pieceSquare (reachableSquares: SquareNotation list) game =
-  reachableSquares
-  |> List.iter (fun targetSquare ->
-       let result = game |> Game.movePiece pieceSquare targetSquare
-       result =! Ok (game |> Game.reposition pieceSquare targetSquare) )
-
-  let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
-  notReachableSquares
-  |> List.iter (fun targetSquare ->
-       let result = game |> Game.movePiece pieceSquare targetSquare
-       result =! Error "move not allowed" )
-
 let testPieceMove turn pieceSquare (ranks: (int * string) list) =
   let game =
     ranks |> List.fold (fun game (rankNum, symbols) -> game |> addRank rankNum symbols) { emptyGame with Turn = turn }
@@ -81,7 +69,7 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
   notReachableSquares
   |> List.iter (fun targetSquare ->
        let result = game |> Game.movePiece pieceSquare targetSquare
-       result =! Error "move not allowed" )
+       (result |> Result.mapError (fun _ -> "")) =! Error "" )
 
 let testBlackPieceMove = testPieceMove Black
 let testWhitePieceMove = testPieceMove White

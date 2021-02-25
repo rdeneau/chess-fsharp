@@ -29,7 +29,9 @@ Move a piece specified by its square to a destination square, verifying the rule
 ## 3. Check
 
 - [x] Detect [*Check*](https://en.wikipedia.org/wiki/Check_(chess))
-- [ ] Reject any move ending up in own *Check*
+- [x] Reject board missing either *King*
+  - ⚠️ Might imply adapting previous tests !
+- [x] Reject any move ending up in own *Check*
 
 ## 4. Extra moves *(past moves needed)*
 
