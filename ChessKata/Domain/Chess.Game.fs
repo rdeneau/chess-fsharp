@@ -10,7 +10,7 @@ type Move =
   | Forward
   | Rectilinear of Path
   | Diagonal of Path
-  | Castling of {| InsidePath: Square list; RookSquare: Square |}
+  | Castling of {| InsidePath: Square list; RookSquare: Square; RookTarget: Square |}
   | Jump
   | Other
 and Path = { NumberOfSquares: int; InsidePath: Square list }
@@ -62,12 +62,17 @@ module Game =
       | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
       | _ -> Other
 
-    let castling offsetFile rookSquare =
+    let castling offsetFile rookSquare rookTarget =
       let insidePath =
         List.init
           (abs offsetFile)
           (fun i -> startSquare |> Square.offset (offsetFile / (i + 1), 0))
-      Castling {| InsidePath = insidePath; RookSquare = rookSquare |> Square.parse |}
+      Castling
+        {|
+          InsidePath = insidePath
+          RookSquare = rookSquare |> Square.parse
+          RookTarget = rookTarget |> Square.parse
+        |}
 
     match file, rank, color, startSquare with
     | 0,  1, White, _
@@ -76,10 +81,10 @@ module Game =
     | 0, -2, Black, { Rank = Rank._7 }
       -> Forward
 
-    | -2, 0, White, { Notation = "e1" } -> castling -3 "a1"
-    | -2, 0, Black, { Notation = "e8" } -> castling -3 "a8"
-    | +2, 0, White, { Notation = "e1" } -> castling +2 "h1"
-    | +2, 0, Black, { Notation = "e8" } -> castling +2 "h8"
+    | -2, 0, White, { Notation = "e1" } -> castling -3 "a1" "d1"
+    | -2, 0, Black, { Notation = "e8" } -> castling -3 "a8" "d8"
+    | +2, 0, White, { Notation = "e1" } -> castling +2 "h1" "f1"
+    | +2, 0, Black, { Notation = "e8" } -> castling +2 "h8" "f8"
 
     | _ -> baseMove
 
@@ -147,7 +152,7 @@ module Game =
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
             |> Option.map (fun _ -> ())
             |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {x.RookSquare.Notation}"
-        }
+        };
 
       | Pawn, Forward ->
         // Pawn cannot capture forward -> targetSquare must be free
@@ -164,6 +169,15 @@ module Game =
           -> Error $"move to {targetSquare.Notation} not allowed: no piece to capture by Pawn"
 
       | _ -> Error $"move to {targetSquare.Notation} not allowed for {piece}"
+
+    let moveRookDuringCastling move board =
+      match move with
+      | Castling x ->
+        let rook = board |> Map.find x.RookSquare
+        board
+        |> Map.remove x.RookSquare
+        |> Map.add x.RookTarget rook
+      | _ -> board
 
     monad' {
       let! (pieceSquare, targetSquare) = checkSquaresDistinct
@@ -183,12 +197,11 @@ module Game =
         | { Color = Black; Piece = Pawn }, { Rank = Rank._1 } -> ColoredPiece.parse '♛'
         | _ -> movedPiece
 
-      // TODO move Rook when Castling
-
       let board =
         game.Board
         |> Map.remove pieceSquare
         |> Map.add targetSquare promotedPiece
+        |> moveRookDuringCastling move
       return { game with Board = board } |> toggleTurn
     }
 

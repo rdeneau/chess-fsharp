@@ -49,7 +49,7 @@ let setRank (rankNum: int) (symbols: string) (game: Game) : Game =
   let rank = rankNum |> int |> enum<Rank>
   let board =
     game.Board
-    |> Map.filter (fun square _ -> square.Rank = rank)
+    |> Map.filter (fun square _ -> square.Rank <> rank)
 
   { game with Board = board }
   |> addRank rankNum symbols
