@@ -389,19 +389,37 @@ let ``Reject castling given missing rook`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "❌➖❓➖♚➖❓❌"
     |> addRank 1 "❌➖❓➖♔➖❓❌"
-
-  (game |> Game.movePiece "e1" "c1") =! Error "castling not allowed: no rook at a1"
-  (game |> Game.movePiece "e1" "g1") =! Error "castling not allowed: no rook at h1"
+  (game |> Game.movePiece "e1" "c1") =! Error "castling to c1 not allowed: no rook at a1"
+  (game |> Game.movePiece "e1" "g1") =! Error "castling to g1 not allowed: no rook at h1"
 
   let game = game |> Game.toggleTurn
-  (game |> Game.movePiece "e8" "c8") =! Error "castling not allowed: no rook at a8"
-  (game |> Game.movePiece "e8" "g8") =! Error "castling not allowed: no rook at h8"
+  (game |> Game.movePiece "e8" "c8") =! Error "castling to c8 not allowed: no rook at a8"
+  (game |> Game.movePiece "e8" "g8") =! Error "castling to g8 not allowed: no rook at h8"
 
-[<Fact(Skip = "TODO")>]
-let ``Enable castling move`` () =
+[<Fact>]
+let ``Reject castling given path blocked`` () =
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
-    |> addRank 8 "♜➖➖➖♚➖➖♜"
-    |> addRank 1 "♖➖❓➖♔➖➖♖"
-  (game |> Game.movePiece "e1" "c1") =! (Ok (game |> setRank 1 "➖♔♖➖➖➖➖♖" |> Game.toggleTurn))
+    |> addRank 8 "♜♞❓♛♚➖♞♜"
+    |> addRank 1 "♖♘❓➖♔♗❓♖"
+  (game |> Game.movePiece "e1" "c1") =! Error "castling to c1 not allowed: b1 occupied"
+  (game |> Game.movePiece "e1" "g1") =! Error "castling to g1 not allowed: f1 occupied"
+
+  let game = game |> Game.toggleTurn
+  (game |> Game.movePiece "e8" "c8") =! Error "castling to c8 not allowed: d8 occupied" // Indicate first blockage (d8, not b8)
+  (game |> Game.movePiece "e8" "g8") =! Error "move to g8 not allowed: square occupied by own piece"
+
+[<Fact(Skip = "TODO")>]
+let ``Perform castling move`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "♜➖❓➖♚➖❓♜"
+    |> addRank 1 "♖➖❓➖♔➖❓♖"
+  (game |> Game.movePiece "e1" "c1") =! Ok (game |> setRank 1 "➖♔♖➖➖➖➖♖" |> Game.toggleTurn)
+  (game |> Game.movePiece "e1" "g1") =! Ok (game |> setRank 1 "♖➖➖➖➖♖♔➖" |> Game.toggleTurn)
+
+  let game = game |> Game.toggleTurn
+  (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖♚♜➖➖➖➖♜" |> Game.toggleTurn)
+  (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn)

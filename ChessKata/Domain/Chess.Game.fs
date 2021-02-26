@@ -116,11 +116,11 @@ module Game =
       let occupiedSquares =
         insidePath
         |> List.filter isOccupied
-        |> List.map (fun x -> x.Notation)
-      if occupiedSquares |> List.isEmpty then
-        Ok ()
-      else
-        Error $"move to {targetSquare.Notation} not allowed: {occupiedSquares} occupied"
+        |> List.rev
+      match occupiedSquares with
+      | [] -> Ok ()
+      | [x] -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
+      | x::_ -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
 
     let checkPieceMove { Color = turn; Piece = piece } move targetPiece targetSquare =
       match piece, move with
@@ -141,12 +141,12 @@ module Game =
       | King, Castling x ->
         monad' {
           do! checkPathFree x.InsidePath targetSquare
-            |> Result.mapError (fun err -> err.Replace("move to", "castling to"))
+            |> Result.mapError (fun err -> err.Replace("move", "castling"))
           return!
             tryFindPieceAt x.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
             |> Option.map (fun _ -> ())
-            |> toResult $"castling not allowed: no rook at {x.RookSquare.Notation}"
+            |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {x.RookSquare.Notation}"
         }
 
       | Pawn, Forward ->
