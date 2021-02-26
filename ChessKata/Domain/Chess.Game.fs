@@ -6,8 +6,14 @@ open FSharpPlus
 type CheckResult = Check of CheckInfo // TODO | Mate
  and CheckInfo = { Of: Color; By: Square list }
 
-type Move = Forward | Rectilinear of Path | Diagonal of Path | Jump | Other
- and Path = { NumberOfSquares: int; InsidePath: Square list }
+type Move =
+  | Forward
+  | Rectilinear of Path
+  | Diagonal of Path
+  | Castling of {| InsidePath: Square list; RookSquare: Square |}
+  | Jump
+  | Other
+and Path = { NumberOfSquares: int; InsidePath: Square list }
 
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
@@ -41,24 +47,14 @@ module Game =
     let file = int (endSquare.File - startSquare.File)
     let rank = int (endSquare.Rank - startSquare.Rank)
 
-    let isForward =
-      match file, rank, color, startSquare.Rank with
-      | 0,  1, White, _ -> true
-      | 0, -1, Black, _ -> true
-      | 0,  2, White, Rank._2 -> true
-      | 0, -2, Black, Rank._7 -> true
-      | _ -> false
+    let computePath numberOfSquares =
+      let fullPath = List.init (numberOfSquares + 1) (fun i -> startSquare |> Square.offset (i * sign file, i * sign rank))
+      {
+        NumberOfSquares = numberOfSquares
+        InsidePath      = trimList fullPath
+      }
 
-    if isForward then
-      Forward
-    else
-      let computePath numberOfSquares =
-        let fullPath = List.init (numberOfSquares + 1) (fun i -> startSquare |> Square.add (i * sign file, i * sign rank))
-        {
-          NumberOfSquares = numberOfSquares
-          InsidePath      = trimList fullPath
-        }
-
+    let baseMove =
       match abs file, abs rank with
       | 0, r -> Rectilinear (computePath r)
       | f, 0 -> Rectilinear (computePath f)
@@ -66,8 +62,33 @@ module Game =
       | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
       | _ -> Other
 
+    let castling offsetFile rookSquare =
+      let insidePath =
+        List.init
+          (abs offsetFile)
+          (fun i -> startSquare |> Square.offset (offsetFile / (i + 1), 0))
+      Castling {| InsidePath = insidePath; RookSquare = rookSquare |> Square.parse |}
+
+    match file, rank, color, startSquare with
+    | 0,  1, White, _
+    | 0, -1, Black, _
+    | 0,  2, White, { Rank = Rank._2 }
+    | 0, -2, Black, { Rank = Rank._7 }
+      -> Forward
+
+    | -2, 0, White, { Notation = "e1" } -> castling -3 "a1"
+    | -2, 0, Black, { Notation = "e8" } -> castling -3 "a8"
+    | +2, 0, White, { Notation = "e1" } -> castling +2 "h1"
+    | +2, 0, Black, { Notation = "e8" } -> castling +2 "h8"
+
+    | _ -> baseMove
+
   let private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
-    let tryFindPieceAt square = game.Board |> Map.tryFind square
+    let isOccupied square =
+      game.Board |> Map.containsKey square
+
+    let tryFindPieceAt square =
+      game.Board |> Map.tryFind square
 
     let checkSquaresDistinct =
       let pieceSquare  = Square.parse pieceLocation
@@ -83,14 +104,25 @@ module Game =
       else
         Ok piece
 
-    let checkTarget targetPiece turn =
+    let checkTarget targetSquare turn =
+      let targetPiece = tryFindPieceAt targetSquare
       match targetPiece with
       | Some { Color = targetColor } when targetColor = turn
-        -> Error "move not allowed"
+        -> Error $"move to {targetSquare.Notation} not allowed: square occupied by own piece"
       | _
-        -> Ok ()
+        -> Ok targetPiece
 
-    let checkPieceMove { Color = turn; Piece = piece } move targetPiece =
+    let checkPathFree insidePath targetSquare =
+      let occupiedSquares =
+        insidePath
+        |> List.filter isOccupied
+        |> List.map (fun x -> x.Notation)
+      if occupiedSquares |> List.isEmpty then
+        Ok ()
+      else
+        Error $"move to {targetSquare.Notation} not allowed: {occupiedSquares} occupied"
+
+    let checkPieceMove { Color = turn; Piece = piece } move targetPiece targetSquare =
       match piece, move with
       | Knight, Jump
       | Queen, Forward
@@ -100,34 +132,38 @@ module Game =
       | King, Rectilinear { NumberOfSquares = 1 }
         -> Ok ()
 
-      | Bishop, Diagonal { InsidePath = insidePath }
       | Queen, Diagonal { InsidePath = insidePath }
-      | Queen, Rectilinear { InsidePath = insidePath }
+      | Bishop, Diagonal { InsidePath = insidePath }
       | Rook, Rectilinear { InsidePath = insidePath }
-        ->
-          let blockingPieces =
-            insidePath
-            |> List.choose (fun x -> game.Board |> Map.tryFind x)
-          if blockingPieces |> List.isEmpty then
-            Ok ()
-          else
-            Error "move not allowed"
+      | Queen, Rectilinear { InsidePath = insidePath }
+        -> checkPathFree insidePath targetSquare
+
+      | King, Castling x ->
+        monad' {
+          do! checkPathFree x.InsidePath targetSquare
+            |> Result.mapError (fun err -> err.Replace("move to", "castling to"))
+          return!
+            tryFindPieceAt x.RookSquare
+            |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
+            |> Option.map (fun _ -> ())
+            |> toResult $"castling not allowed: no rook at {x.RookSquare.Notation}"
+        }
 
       | Pawn, Forward ->
+        // Pawn cannot capture forward -> targetSquare must be free
         match targetPiece with
-        | None
-          -> Ok ()
-        | _
-          -> Error "move not allowed"
+        | None -> Ok ()
+        | _ -> Error $"move to {targetSquare.Notation} not allowed: square occupied"
 
       | Pawn, Diagonal { NumberOfSquares = 1 } ->
+        // Capture adversary piece?
         match targetPiece with
         | Some { Color = targetColor } when targetColor <> turn
-          -> Ok () // Capture adversary piece
+          -> Ok ()
         | _
-          -> Error "move not allowed"
+          -> Error $"move to {targetSquare.Notation} not allowed: no piece to capture by Pawn"
 
-      | _ -> Error "move not allowed"
+      | _ -> Error $"move to {targetSquare.Notation} not allowed for {piece}"
 
     monad' {
       let! (pieceSquare, targetSquare) = checkSquaresDistinct
@@ -136,17 +172,18 @@ module Game =
         tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
         >>= checkTurnToPlay
 
-      let targetPiece = tryFindPieceAt targetSquare
-      do! checkTarget targetPiece game.Turn
+      let! targetPiece = checkTarget targetSquare game.Turn
 
       let move = computeMove pieceSquare targetSquare movedPiece.Color
-      do! checkPieceMove movedPiece move targetPiece
+      do! checkPieceMove movedPiece move targetPiece targetSquare
 
       let promotedPiece =
         match (movedPiece, targetSquare) with
         | { Color = White; Piece = Pawn }, { Rank = Rank._8 } -> ColoredPiece.parse '♕'
         | { Color = Black; Piece = Pawn }, { Rank = Rank._1 } -> ColoredPiece.parse '♛'
         | _ -> movedPiece
+
+      // TODO move Rook when Castling
 
       let board =
         game.Board

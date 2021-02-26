@@ -381,3 +381,27 @@ let ``Reject move ending up in own check`` () =
     |> addRank 1 "➖➖➖➖➖♔➖➖"
   (game |> Game.movePiece "f1" "e1") =! Error "move to e1 not allowed: in check by [e6]" // King puts himself in check
   (game |> Game.movePiece "f2" "g3") =! Error "move to g3 not allowed: in check by [f6]" // Bishop move puts its king in check
+
+[<Fact>]
+let ``Reject castling given missing rook`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "❌➖❓➖♚➖❓❌"
+    |> addRank 1 "❌➖❓➖♔➖❓❌"
+
+  (game |> Game.movePiece "e1" "c1") =! Error "castling not allowed: no rook at a1"
+  (game |> Game.movePiece "e1" "g1") =! Error "castling not allowed: no rook at h1"
+
+  let game = game |> Game.toggleTurn
+  (game |> Game.movePiece "e8" "c8") =! Error "castling not allowed: no rook at a8"
+  (game |> Game.movePiece "e8" "g8") =! Error "castling not allowed: no rook at h8"
+
+[<Fact(Skip = "TODO")>]
+let ``Enable castling move`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "♜➖➖➖♚➖➖♜"
+    |> addRank 1 "♖➖❓➖♔➖➖♖"
+  (game |> Game.movePiece "e1" "c1") =! (Ok (game |> setRank 1 "➖♔♖➖➖➖➖♖" |> Game.toggleTurn))

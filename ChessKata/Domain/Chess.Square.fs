@@ -34,7 +34,8 @@ module Square =
       Rank     = rank
     }
 
-  let add (fileDiff, rankDiff) square =
+  /// E.g. "a1" |> offset (1, 1) = "b2"
+  let offset (fileDiff, rankDiff) square =
     let file =
       int square.File
       |> (+) fileDiff
