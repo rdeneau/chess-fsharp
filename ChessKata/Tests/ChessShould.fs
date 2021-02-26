@@ -2,6 +2,7 @@ module ChessKata.Tests.ChessShould
 
 open ChessKata.Domain
 open ChessKata.Tests.ChessHelpers
+open FSharpPlus
 open FsUnit
 open Swensen.Unquote
 open Xunit
@@ -423,3 +424,28 @@ let ``Perform castling move`` () =
   let game = game |> Game.toggleTurn
   (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖➖♚♜➖➖➖♜" |> Game.toggleTurn)
   (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn)
+
+[<Fact>]
+let ``Reject castling given rook has previously moved`` () =
+  monad' {
+    // Move rook forth...
+    let! game1 =
+      emptyGame
+      |> addRank 9 "ａｂｃｄｅｆｇｈ"
+      |> addRank 1 "♖➖➖➖♔➖➖♖"
+      |> Game.movePiece "a1" "a2"
+    // ... and back
+    let! game2 =
+      game1
+      |> Game.toggleTurn
+      |> Game.movePiece "a2" "a1"
+    // Attempt a castling
+    return!
+      game2
+      |> Game.toggleTurn
+      |> Game.movePiece "a1" "c1"
+  } =! Error "castling to c1 not allowed: rook has previously moved"
+
+// TODO ``Reject castling given king has previously moved``
+// TODO ``Reject castling given king is currently in check``
+// TODO ``Reject castling given king passes through a square that is attacked by an adversary piece``
