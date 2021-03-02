@@ -88,7 +88,12 @@ module Game =
 
     | _ -> baseMove
 
-  let private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation) (targetLocation: SquareNotation) (game: Game) : Result<Game, string> =
+  type CheckPlayerFn = ColoredPiece -> Game -> CheckResult option
+
+  let private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation)
+                                             (targetLocation: SquareNotation)
+                                             (checkPlayer: CheckPlayerFn)
+                                             (game: Game) : Result<Game, string> =
     let isOccupied square =
       game.Board |> Map.containsKey square
 
@@ -127,7 +132,8 @@ module Game =
       | [x] -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
       | x::_ -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
 
-    let checkPieceMove { Color = turn; Piece = piece } move targetPiece targetSquare =
+    let checkPieceMove coloredPiece move targetPiece targetSquare =
+      let { Color = turn; Piece = piece } = coloredPiece
       match piece, move with
       | Knight, Jump
       | Queen, Forward
@@ -144,9 +150,16 @@ module Game =
         -> checkPathFree insidePath targetSquare
 
       | King, Castling x ->
+        let verifiedNotInCheck =
+          match game |> checkPlayer coloredPiece with
+          | Some (Check check) ->
+            let checkers = check.By |> List.map (fun x -> x.Notation)
+            Error $"castling to {targetSquare.Notation} not allowed: king is currently in check by {checkers}"
+          | _ -> Ok ()
         monad' {
           do! checkPathFree x.InsidePath targetSquare
             |> Result.mapError (fun err -> err.Replace("move", "castling"))
+          do! verifiedNotInCheck
           return!
             tryFindPieceAt x.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
@@ -206,7 +219,8 @@ module Game =
     }
 
   /// Check if the given player is in check or mate
-  let checkPlayer king game : CheckResult option =
+  let rec private checkPlayer: CheckPlayerFn = fun king game ->
+    // TODO: check piece is King?
     let kingSquare =
       match game |> tryLocatePiece king.Symbol with
       | Some x -> x
@@ -216,7 +230,7 @@ module Game =
       let result =
         game
         |> toggleTurn
-        |> movePieceWithoutFinalKingCheck adversarySquare.Notation kingSquare.Notation
+        |> movePieceWithoutFinalKingCheck adversarySquare.Notation kingSquare.Notation checkPlayer
       match result with
       | Ok _ -> true
       | _ -> false
@@ -243,7 +257,7 @@ module Game =
   let movePiece pieceLocation targetLocation game : Result<Game, string> =
     monad' {
       let! newGame =
-        game |> movePieceWithoutFinalKingCheck pieceLocation targetLocation
+        game |> movePieceWithoutFinalKingCheck pieceLocation targetLocation checkPlayer
       return!
         match newGame |> toggleTurn |> check with
         | None ->
