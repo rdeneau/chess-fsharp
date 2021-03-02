@@ -32,12 +32,10 @@ Move a piece specified by its square to a destination square, verifying the rule
 - [x] Reject board missing either *King*
   - ⚠️ Might imply adapting previous tests !
 - [x] Reject any move ending up in own *Check*
+- [ ] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
+- [ ] Detect [Stalemate](https://en.wikipedia.org/wiki/Stalemate)
 
 ## 4. Extra moves *(past moves needed)*
 
-- [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling) move
-- [ ] Handle pawn capture [en passant](https://en.wikipedia.org/wiki/En_passant)
-
-## 5. End game
-
-- [ ] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
+- [ ] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
+- [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling)
