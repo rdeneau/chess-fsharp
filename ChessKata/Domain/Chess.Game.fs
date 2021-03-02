@@ -220,11 +220,11 @@ module Game =
 
   /// Check if the given player is in check or mate
   let rec private checkPlayer: CheckPlayerFn = fun king game ->
-    // TODO: check piece is King?
     let kingSquare =
-      match game |> tryLocatePiece king.Symbol with
-      | Some x -> x
-      | None -> failwith $"{king.Color} King not found"
+      match king.Piece, game |> tryLocatePiece king.Symbol with
+      | King, Some x -> x
+      | King, None -> failwith $"{king.Color} King not found"
+      | piece, _ -> invalidArg (nameof king) $"Expecting King, received {piece}"
 
     let canMoveToKing adversarySquare : bool =
       let result =
