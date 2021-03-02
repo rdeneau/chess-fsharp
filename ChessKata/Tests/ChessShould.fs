@@ -132,8 +132,8 @@ let ``Reject moving bishop when blocked on the way`` () =
     |> addRank 3 "➖➖♙➖➖➖➖➖"
     |> addRank 2 "➖❓➖➖➖♙➖➖"
     |> addRank 1 "➖➖➖♔➖➖❓➖"
-  (game |> Game.movePiece "d4" "b2") =! Error "move not allowed"
-  (game |> Game.movePiece "d4" "g1") =! Error "move not allowed"
+  (game |> Game.movePiece "d4" "b2") =! Error "move to b2 not allowed: c3 occupied"
+  (game |> Game.movePiece "d4" "g1") =! Error "move to g1 not allowed: f2 occupied"
 
 [<Fact>]
 let ``Move rook to an empty square rectilinear`` () =
@@ -158,8 +158,8 @@ let ``Reject moving rook when blocked on the way`` () =
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖♙➖➖➖➖"
     |> addRank 1 "➖♔➖❓➖➖➖➖"
-  (game |> Game.movePiece "d4" "d1") =! Error "move not allowed"
-  (game |> Game.movePiece "d4" "h4") =! Error "move not allowed"
+  (game |> Game.movePiece "d4" "d1") =! Error "move to d1 not allowed: d2 occupied"
+  (game |> Game.movePiece "d4" "h4") =! Error "move to h4 not allowed: g4 occupied"
 
 [<Fact>]
 let ``Move queen to an empty square reachable`` () =
@@ -186,8 +186,15 @@ let ``Reject moving queen when blocked on the way`` () =
     |> addRank 2 "➖➖➖♙➖♙➖➖"
     |> addRank 1 "➖♔➖❓➖➖❓➖"
 
-  ["b6";"d6";"f6";"a4";"h4";"d1";"g1"]
-  |> List.iter (fun dest -> (game |> Game.movePiece "d4" dest) =! Error "move not allowed")
+  [ "b6", "c5"
+    "d6", "d5"
+    "f6", "e5"
+    "a4", "b4"
+    "h4", "g4"
+    "d1", "d2"
+    "g1", "f2" ]
+  |> List.iter (fun (dest, blockedBy) ->
+    (game |> Game.movePiece "d4" dest) =! Error $"move to {dest} not allowed: {blockedBy} occupied" )
 
 [<Fact>]
 let ``Move queen capturing adversary piece`` () =
