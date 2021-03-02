@@ -442,7 +442,17 @@ let ``Reject castling given king is currently in check`` () =
   (game |> Game.movePiece "e1" "c1")
     =! Error "castling to c1 not allowed: king is currently in check by [e8]"
 
-[<Fact(Skip = "TODO")>]
+[<Fact>]
+let ``Reject castling given king passes through a square under attack`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖♚♜➖➖➖➖"
+    |> addRank 1 "♖➖➖➖♔➖➖♖"
+  (game |> Game.movePiece "e1" "c1")
+    =! Error "castling to c1 not allowed: king cannot passe through d1 under attack by d8"
+
+[<Fact(Skip = "TODO")>] // TODO
 let ``Reject castling given rook has previously moved`` () =
   monad' {
     // Move rook forth...
@@ -465,4 +475,3 @@ let ``Reject castling given rook has previously moved`` () =
   } =! Error "castling to c1 not allowed: rook has previously moved"
 
 // TODO ``Reject castling given king has previously moved``
-// TODO ``Reject castling given king passes through a square that is attacked by an adversary piece``

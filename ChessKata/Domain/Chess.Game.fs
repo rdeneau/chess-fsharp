@@ -24,6 +24,11 @@ module Game =
     let board = game.Board |> Map.add square piece
     { game with Board = board }
 
+  let private adversarySquares game =
+    game.Board
+    |> Map.filter (fun _ piece -> piece.Color <> game.Turn)
+    |> Map.keys
+
   let reposition pieceLocation targetLocation game : Game =
     let pieceSquare = Square.parse pieceLocation
     let targetSquare = Square.parse targetLocation
@@ -90,7 +95,7 @@ module Game =
 
   type CheckPlayerFn = ColoredPiece -> Game -> CheckResult option
 
-  let private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation)
+  let rec private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation)
                                              (targetLocation: SquareNotation)
                                              (checkPlayer: CheckPlayerFn)
                                              (game: Game) : Result<Game, string> =
@@ -100,7 +105,7 @@ module Game =
     let tryFindPieceAt square =
       game.Board |> Map.tryFind square
 
-    let checkSquaresDistinct =
+    let verifySquaresDistinct =
       let pieceSquare  = Square.parse pieceLocation
       let targetSquare = Square.parse targetLocation
       if pieceSquare = targetSquare then
@@ -108,13 +113,13 @@ module Game =
       else
         Ok (pieceSquare, targetSquare)
 
-    let checkTurnToPlay piece =
+    let verifyTurnToPlay piece =
       if game.Turn <> piece.Color then
         Error $"not {piece.Color}'s turn to play"
       else
         Ok piece
 
-    let checkTarget targetSquare turn =
+    let verifyTarget targetSquare turn =
       let targetPiece = tryFindPieceAt targetSquare
       match targetPiece with
       | Some { Color = targetColor } when targetColor = turn
@@ -122,9 +127,28 @@ module Game =
       | _
         -> Ok targetPiece
 
-    let checkPathFree insidePath targetSquare =
+    let verifyCastlingPathNotUnderAttack path targetSquare =
+      let isSquareUnderAttackBy (adversary, square) =
+        let attackResult =
+          game
+          |> toggleTurn
+          |> movePieceWithoutFinalKingCheck adversary.Notation square.Notation checkPlayer
+        match attackResult with
+        | Ok    _ -> true
+        | Error _ -> false
+
+      let squareUnderAttack =
+        Seq.allPairs (game |> adversarySquares) (path |> Seq.ofList)
+        |> Seq.tryFind isSquareUnderAttackBy
+
+      match squareUnderAttack with
+      | Some (x, y) ->
+        Error $"castling to {targetSquare.Notation} not allowed: king cannot passe through {y.Notation} under attack by {x.Notation}"
+      | _ -> Ok ()
+
+    let verifyPathFree path targetSquare =
       let occupiedSquares =
-        insidePath
+        path
         |> List.filter isOccupied
         |> List.rev
       match occupiedSquares with
@@ -132,7 +156,7 @@ module Game =
       | [x] -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
       | x::_ -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
 
-    let checkPieceMove coloredPiece move targetPiece targetSquare =
+    let verifyPieceMove coloredPiece move targetPiece targetSquare =
       let { Color = turn; Piece = piece } = coloredPiece
       match piece, move with
       | Knight, Jump
@@ -147,7 +171,7 @@ module Game =
       | Bishop, Diagonal { InsidePath = insidePath }
       | Rook, Rectilinear { InsidePath = insidePath }
       | Queen, Rectilinear { InsidePath = insidePath }
-        -> checkPathFree insidePath targetSquare
+        -> verifyPathFree insidePath targetSquare
 
       | King, Castling x ->
         let verifiedNotInCheck =
@@ -157,9 +181,10 @@ module Game =
             Error $"castling to {targetSquare.Notation} not allowed: king is currently in check by {checkers}"
           | _ -> Ok ()
         monad' {
-          do! checkPathFree x.InsidePath targetSquare
-            |> Result.mapError (fun err -> err.Replace("move", "castling"))
           do! verifiedNotInCheck
+          do! verifyPathFree x.InsidePath targetSquare
+            |> Result.mapError (fun err -> err.Replace("move", "castling"))
+          do! verifyCastlingPathNotUnderAttack (x.InsidePath |> List.take 2) targetSquare
           return!
             tryFindPieceAt x.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
@@ -193,16 +218,16 @@ module Game =
       | _ -> board
 
     monad' {
-      let! (pieceSquare, targetSquare) = checkSquaresDistinct
+      let! (pieceSquare, targetSquare) = verifySquaresDistinct
 
       let! movedPiece =
         tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
-        >>= checkTurnToPlay
+        >>= verifyTurnToPlay
 
-      let! targetPiece = checkTarget targetSquare game.Turn
+      let! targetPiece = verifyTarget targetSquare game.Turn
 
       let move = computeMove pieceSquare targetSquare movedPiece.Color
-      do! checkPieceMove movedPiece move targetPiece targetSquare
+      do! verifyPieceMove movedPiece move targetPiece targetSquare
 
       let promotedPiece =
         match (movedPiece, targetSquare) with
@@ -236,8 +261,8 @@ module Game =
       | _ -> false
 
     let checks =
-      game.Board
-      |> Map.keys
+      game
+      |> adversarySquares
       |> Seq.filter canMoveToKing
       |> List.ofSeq
 
