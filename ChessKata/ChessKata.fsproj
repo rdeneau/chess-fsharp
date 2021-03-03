@@ -13,7 +13,8 @@
     <Compile Include="Domain\Chess.Square.fs" />
     <Compile Include="Domain\Chess.Game.fs" />
     <Compile Include="Tests\ChessHelpers.fs" />
-    <Compile Include="Tests\ChessShould.fs" />
+    <Compile Include="Tests\GameShould.fs" />
+    <Compile Include="Tests\SquareShould.fs" />
   </ItemGroup>
 
   <ItemGroup>

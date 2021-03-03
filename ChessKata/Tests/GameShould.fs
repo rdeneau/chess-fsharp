@@ -1,4 +1,4 @@
-module ChessKata.Tests.ChessShould
+module ChessKata.Tests.GameShould
 
 open ChessKata.Domain
 open ChessKata.Tests.ChessHelpers
@@ -439,7 +439,7 @@ let ``Reject castling given king is currently in check`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "➖➖♚➖♜➖➖➖"
     |> addRank 1 "♖➖➖➖♔➖➖♖"
-  (game |> Game.movePiece "e1" "c1")
+  game |> Game.movePiece "e1" "c1"
     =! Error "castling to c1 not allowed: king is currently in check by [e8]"
 
 [<Fact>]
@@ -449,8 +449,19 @@ let ``Reject castling given king passes through a square under attack`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "➖➖♚♜➖➖➖➖"
     |> addRank 1 "♖➖➖➖♔➖➖♖"
-  (game |> Game.movePiece "e1" "c1")
-    =! Error "castling to c1 not allowed: king cannot passe through d1 under attack by d8"
+  game |> Game.movePiece "e1" "c1"
+    =! Error "castling to c1 not allowed: king cannot pass through d1 under attack by d8"
+
+  // Ok if b1 under attack: the king does not pass through b1
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖♜➖♚➖➖➖➖"
+    |> addRank 1 "♖➖➖➖♔➖➖♖"
+  game
+  |> Game.movePiece "e1" "c1"
+  |> Result.map (fun _ -> ())
+  =! Ok()
 
 [<Fact(Skip = "TODO")>] // TODO
 let ``Reject castling given rook has previously moved`` () =

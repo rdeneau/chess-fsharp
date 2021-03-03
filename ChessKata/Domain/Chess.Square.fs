@@ -2,6 +2,7 @@ namespace ChessKata.Domain
 
 open System
 open ChessKata.Common.Helpers
+open FSharpPlus
 
 type File = a = 1 | b = 2 | c = 3 | d = 4 | e = 5 | f = 6 | g = 7 | h = 8 // Column
 
@@ -10,6 +11,12 @@ type Rank = _1 = 1 | _2 = 2 | _3 = 3 | _4 = 4 | _5 = 5 | _6 = 6 | _7 = 7 | _8 = 
 type SquareNotation = string // E.g. "a1"
 
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
+
+type Path = { InnerSquares: Square list; Angle : Angle }
+and Angle =
+  | Horizontal =  0
+  | Diagonal   = 45
+  | Vertical   = 90
 
 module Square =
   let tryParse (notation: SquareNotation) =
@@ -45,3 +52,29 @@ module Square =
       |> (+) rankDiff
       |> enum<Rank>
     create file rank
+
+  let tryComputePath startSquare endSquare =
+    let fileDiff = int (endSquare.File - startSquare.File)
+    let rankDiff = int (endSquare.Rank - startSquare.Rank)
+
+    monad' {
+      let! (numberOfSquares, angle) =
+        match abs fileDiff, abs rankDiff with
+        | 0, r            -> Some (r, Angle.Vertical)
+        | f, 0            -> Some (f, Angle.Horizontal)
+        | f, r when f = r -> Some (f, Angle.Diagonal)
+        | _               -> None
+
+      let fullPath =
+        List.init
+          (numberOfSquares + 1)
+          (fun i -> startSquare |> offset (i * sign fileDiff, i * sign rankDiff))
+
+      return { InnerSquares = trimList fullPath; Angle = angle }
+    }
+
+  let horizontalPathAhead fileDiff startSquare =
+    let endSquare = startSquare |> offset (fileDiff + (sign fileDiff), 0)
+    match tryComputePath startSquare endSquare with
+    | Some path -> path.InnerSquares
+    | None -> []
