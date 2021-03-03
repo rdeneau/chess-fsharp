@@ -6,14 +6,6 @@ open FSharpPlus
 type CheckResult = Check of CheckInfo // TODO | Mate
  and CheckInfo = { Of: Color; By: Square list }
 
-type Move =
-  | Forward
-  | Rectilinear of Path
-  | Diagonal of Path
-  | Castling of {| InnerSquares: Square list; RookSquare: Square; RookTarget: Square |}
-  | Jump
-  | Other
-
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
 
 module Game =
@@ -51,24 +43,16 @@ module Game =
     let file = int (endSquare.File - startSquare.File)
     let rank = int (endSquare.Rank - startSquare.Rank)
 
-    let castling offsetFile rookCurrentPosition rookTargetPosition =
-      Castling
-        {|
-          InnerSquares = startSquare |> Square.horizontalPathAhead offsetFile
-          RookSquare = rookCurrentPosition |> Square.parse
-          RookTarget = rookTargetPosition |> Square.parse
-        |}
-
     match file, rank, color, startSquare with
     | 0,  1, White, _
     | 0, -1, Black, _
     | 0,  2, White, { Rank = Rank._2 }
     | 0, -2, Black, { Rank = Rank._7 } -> Forward
 
-    | -2, 0, White, { Notation = "e1" } -> castling -3 "a1" "d1"
-    | -2, 0, Black, { Notation = "e8" } -> castling -3 "a8" "d8"
-    | +2, 0, White, { Notation = "e1" } -> castling +2 "h1" "f1"
-    | +2, 0, Black, { Notation = "e8" } -> castling +2 "h8" "f8"
+    | -2, 0, White, { Notation = "e1" } -> Castling (White, QueenSide)
+    | +2, 0, White, { Notation = "e1" } -> Castling (White, KingSide)
+    | -2, 0, Black, { Notation = "e8" } -> Castling (Black, QueenSide)
+    | +2, 0, Black, { Notation = "e8" } -> Castling (Black, KingSide)
 
     | _ ->
       match Square.tryComputePath startSquare endSquare with
@@ -136,10 +120,7 @@ module Game =
       | _ -> Ok ()
 
     let verifyPathFree path targetSquare =
-      let occupiedSquares =
-        path
-        |> List.filter isOccupied
-        |> List.rev
+      let occupiedSquares = path |> List.filter isOccupied
       match occupiedSquares with
       | [] -> Ok ()
       | [x] -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
@@ -162,7 +143,8 @@ module Game =
       | Queen, Rectilinear { InnerSquares = insidePath }
         -> verifyPathFree insidePath targetSquare
 
-      | King, Castling x ->
+      | King, Castling c ->
+        let castling = c |> Castling.info
         let verifiedNotInCheck =
           match game |> checkPlayer coloredPiece with
           | Some (Check check) ->
@@ -171,14 +153,14 @@ module Game =
           | _ -> Ok ()
         monad' {
           do! verifiedNotInCheck
-          do! verifyPathFree x.InnerSquares targetSquare
+          do! verifyPathFree castling.InnerSquares targetSquare
             |> Result.mapError (fun err -> err.Replace("move", "castling"))
-          do! verifyCastlingPathNotUnderAttack (x.InnerSquares |> List.take 2) targetSquare
+          do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.take 2) targetSquare
           return!
-            tryFindPieceAt x.RookSquare
+            tryFindPieceAt castling.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
             |> Option.map (fun _ -> ())
-            |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {x.RookSquare.Notation}"
+            |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {castling.RookSquare.Notation}"
         };
 
       | Pawn, Forward ->
@@ -199,11 +181,12 @@ module Game =
 
     let moveRookDuringCastling move board =
       match move with
-      | Castling x ->
-        let rook = board |> Map.find x.RookSquare
+      | Castling c ->
+        let castling = c |> Castling.info
+        let rook = board |> Map.find castling.RookSquare
         board
-        |> Map.remove x.RookSquare
-        |> Map.add x.RookTarget rook
+        |> Map.remove castling.RookSquare
+        |> Map.add castling.RookTarget rook
       | _ -> board
 
     monad' {

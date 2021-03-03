@@ -72,9 +72,3 @@ module Square =
 
       return { InnerSquares = trimList fullPath; Angle = angle }
     }
-
-  let horizontalPathAhead fileDiff startSquare =
-    let endSquare = startSquare |> offset (fileDiff + (sign fileDiff), 0)
-    match tryComputePath startSquare endSquare with
-    | Some path -> path.InnerSquares
-    | None -> []

@@ -11,6 +11,7 @@
     <Compile Include="Domain\Common.Helpers.fs" />
     <Compile Include="Domain\Chess.Piece.fs" />
     <Compile Include="Domain\Chess.Square.fs" />
+    <Compile Include="Domain\Chess.Move.fs" />
     <Compile Include="Domain\Chess.Game.fs" />
     <Compile Include="Tests\ChessHelpers.fs" />
     <Compile Include="Tests\GameShould.fs" />
