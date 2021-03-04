@@ -62,7 +62,7 @@ module Square =
     monad' {
       let! (numberOfSquares, angle) =
         match abs fileDiff, abs rankDiff with
-//        | 0, 0            -> None
+        | 0, 0            -> None
         | 0, r            -> Some (r, Angle.Vertical)
         | f, 0            -> Some (f, Angle.Horizontal)
         | f, r when f = r -> Some (f, Angle.Diagonal)

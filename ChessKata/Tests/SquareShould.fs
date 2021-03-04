@@ -26,6 +26,7 @@ let ``Compute valid path`` startSquare endSquare expectedInner expectedAngle =
 [<Theory>]
 [<InlineData("a1", "c2")>]
 [<InlineData("a1", "b4")>]
+[<InlineData("a1", "a1")>]
 let ``Compute invalid path`` startSquare endSquare =
   let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse)
   result =! None
