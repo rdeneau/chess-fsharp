@@ -159,7 +159,7 @@ module Game =
           return!
             tryFindPieceAt castling.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
-            |> Option.map (fun _ -> ())
+            |> Option.map ignore
             |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {castling.RookSquare.Notation}"
         };
 

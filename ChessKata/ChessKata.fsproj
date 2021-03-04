@@ -5,6 +5,7 @@
 
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,5 +34,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+
+  <Target Name="FSharpLint" AfterTargets="BeforeBuild">
+    <Exec Command="dotnet fsharplint -f msbuild lint $(MSBuildProjectFullPath)" IgnoreExitCode="false" ConsoleToMSBuild="true" />
+  </Target>
 
 </Project>

@@ -452,7 +452,7 @@ let ``Reject castling given king passes through a square under attack`` () =
   game |> Game.movePiece "e1" "c1"
     =! Error "castling to c1 not allowed: king cannot pass through d1 under attack by d8"
 
-  // Ok if b1 under attack: the king does not pass through b1
+  // Ok if b1 under attack: not in the king path
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
@@ -460,7 +460,7 @@ let ``Reject castling given king passes through a square under attack`` () =
     |> addRank 1 "♖➖➖➖♔➖➖♖"
   game
   |> Game.movePiece "e1" "c1"
-  |> Result.map (fun _ -> ())
+  |> Result.map ignore
   =! Ok()
 
 [<Fact(Skip = "TODO")>] // TODO

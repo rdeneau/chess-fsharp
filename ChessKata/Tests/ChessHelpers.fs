@@ -56,11 +56,11 @@ let setRank (rankNum: int) (symbols: string) (game: Game) : Game =
 
 
 [<Literal>]
-let reachableSymbol = '➕'
+let ReachableSymbol = '➕'
 
 let reachableInRank (rankNum: int) (symbols: string) : SquareNotation list =
   let mapReachable (symbol: char, square) =
-    if reachableSymbol = symbol then
+    if ReachableSymbol = symbol then
       Some square.Notation
     else
       None

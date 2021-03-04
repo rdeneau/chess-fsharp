@@ -4,8 +4,10 @@ open System
 open ChessKata.Common.Helpers
 open FSharpPlus
 
+// fsharplint:disable-next-line EnumCasesNames
 type File = a = 1 | b = 2 | c = 3 | d = 4 | e = 5 | f = 6 | g = 7 | h = 8 // Column
 
+// fsharplint:disable-next-line EnumCasesNames
 type Rank = _1 = 1 | _2 = 2 | _3 = 3 | _4 = 4 | _5 = 5 | _6 = 6 | _7 = 7 | _8 = 8 // Row
 
 type SquareNotation = string // E.g. "a1"
@@ -60,6 +62,7 @@ module Square =
     monad' {
       let! (numberOfSquares, angle) =
         match abs fileDiff, abs rankDiff with
+//        | 0, 0            -> None
         | 0, r            -> Some (r, Angle.Vertical)
         | f, 0            -> Some (f, Angle.Horizontal)
         | f, r when f = r -> Some (f, Angle.Diagonal)
