@@ -6,7 +6,9 @@ open FSharpPlus
 type CheckResult = Check of CheckInfo // TODO | Mate
  and CheckInfo = { Of: Color; By: Square list }
 
-type Game = { Board: Map<Square, ColoredPiece>; Turn: Color }
+type MoveLog = { From: SquareNotation; To: SquareNotation }
+
+type Game = { Board: Map<Square, ColoredPiece>; Turn: Color; Moves: MoveLog list }
 
 module Game =
   let addPiece pieceSymbol squareNotation game : Game =
@@ -19,6 +21,9 @@ module Game =
     game.Board
     |> Map.filter (fun _ piece -> piece.Color <> game.Turn)
     |> Map.keys
+
+  let logMove pieceLocation targetLocation game =
+    { game with Moves = { From = pieceLocation; To = targetLocation } :: game.Moves }
 
   let reposition pieceLocation targetLocation game : Game =
     let pieceSquare = Square.parse pieceLocation
@@ -190,7 +195,7 @@ module Game =
       | _ -> board
 
     monad' {
-      let! (pieceSquare, targetSquare) = verifySquaresDistinct
+      let! pieceSquare, targetSquare = verifySquaresDistinct
 
       let! movedPiece =
         tryFindPieceAt pieceSquare |> toResult $"no piece at {pieceLocation}"
@@ -212,7 +217,11 @@ module Game =
         |> Map.remove pieceSquare
         |> Map.add targetSquare promotedPiece
         |> moveRookDuringCastling move
-      return { game with Board = board } |> toggleTurn
+
+      return
+        { game with Board = board }
+        |> logMove pieceLocation targetLocation
+        |> toggleTurn
     }
 
   /// Check if the given player is in check or mate

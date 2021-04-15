@@ -9,7 +9,7 @@ let allSquareNotations: SquareNotation list =
    for rank in enumValues<Rank> do
      yield $"{file}{int rank}" ]
 
-let emptyGame = { Board = Map.empty; Turn = White }
+let emptyGame = { Board = Map.empty; Turn = White; Moves = [] }
 
 let square = Square.parse
 
@@ -79,13 +79,20 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
   reachableSquares
   |> List.iter (fun targetSquare ->
        let result = game |> Game.movePiece pieceSquare targetSquare
-       result =! Ok (game |> Game.reposition pieceSquare targetSquare |> Game.toggleTurn) )
+       let expected =
+         { game with Moves = [{ From = pieceSquare; To = targetSquare }] }
+         |> Game.reposition pieceSquare targetSquare
+         |> Game.toggleTurn
+       result =! Ok expected
+       (result |> Result.map (fun game -> game.Moves)) =! Ok [{ From = pieceSquare; To = targetSquare }]
+     )
 
   let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
   notReachableSquares
   |> List.iter (fun targetSquare ->
        let result = game |> Game.movePiece pieceSquare targetSquare
-       (result |> Result.mapError (fun _ -> "")) =! Error "" )
+       (result |> Result.mapError (fun _ -> "")) =! Error ""
+     )
 
 let testBlackPieceMove = testPieceMove Black
 let testWhitePieceMove = testPieceMove White

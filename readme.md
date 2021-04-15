@@ -39,3 +39,9 @@ Move a piece specified by its square to a destination square, verifying the rule
 
 - [ ] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
 - [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling)
+
+## TODO
+
+- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/modules#recursive-modules
+- Using tick: performAction -> action' ?
+- Using ||> with List.fold (or check better alternative to fold)

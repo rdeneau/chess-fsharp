@@ -18,6 +18,9 @@
     <Compile Include="Tests\GameShould.fs" />
     <Compile Include="Tests\SquareShould.fs" />
     <Compile Include="Main.fs" />
+    <Content Include="..\readme.md">
+      <Link>readme.md</Link>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -36,8 +39,8 @@
     </PackageReference>
   </ItemGroup>
 
-  <Target Name="FSharpLint" AfterTargets="BeforeBuild">
-    <Exec Command="dotnet fsharplint -f msbuild lint $(MSBuildProjectFullPath)" IgnoreExitCode="false" ConsoleToMSBuild="true" />
-  </Target>
+<!--  <Target Name="FSharpLint" AfterTargets="BeforeBuild">-->
+<!--    <Exec Command="dotnet fsharplint -f msbuild lint $(MSBuildProjectFullPath)" IgnoreExitCode="false" ConsoleToMSBuild="true" />-->
+<!--  </Target>-->
 
 </Project>

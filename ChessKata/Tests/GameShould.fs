@@ -295,6 +295,7 @@ let ``Promote black pawn moved to 1th rank`` () =
     |> addRank 8 "➖➖➖➖➖♚➖➖"
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖♛➖➖➖♔➖➖"
+    |> Game.logMove "b2" "b1"
 
   (game |> Game.movePiece "b2" "b1") =! Ok expected
 
@@ -314,6 +315,7 @@ let ``Promote white pawn moved to 8th rank`` () =
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖➖➖➖♔➖➖"
     |> Game.toggleTurn
+    |> Game.logMove "a7" "a8"
 
   (game |> Game.movePiece "a7" "a8") =! Ok expected
 
@@ -425,12 +427,12 @@ let ``Perform castling move`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "♜➖❓➖♚➖❓♜"
     |> addRank 1 "♖➖❓➖♔➖❓♖"
-  (game |> Game.movePiece "e1" "c1") =! Ok (game |> setRank 1 "➖➖♔♖➖➖➖♖" |> Game.toggleTurn)
-  (game |> Game.movePiece "e1" "g1") =! Ok (game |> setRank 1 "♖➖➖➖➖♖♔➖" |> Game.toggleTurn)
+  (game |> Game.movePiece "e1" "c1") =! Ok (game |> setRank 1 "➖➖♔♖➖➖➖♖" |> Game.toggleTurn |> Game.logMove "e1" "c1")
+  (game |> Game.movePiece "e1" "g1") =! Ok (game |> setRank 1 "♖➖➖➖➖♖♔➖" |> Game.toggleTurn |> Game.logMove "e1" "g1")
 
   let game = game |> Game.toggleTurn
-  (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖➖♚♜➖➖➖♜" |> Game.toggleTurn)
-  (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn)
+  (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖➖♚♜➖➖➖♜" |> Game.toggleTurn |> Game.logMove "e8" "c8")
+  (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn |> Game.logMove "e8" "g8")
 
 [<Fact>]
 let ``Reject castling given king is currently in check`` () =
