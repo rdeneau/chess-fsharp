@@ -44,33 +44,6 @@ module Game =
   let toggleTurn game : Game =
     { game with Turn = game.Turn |> Color.toggle }
 
-  let private computeMove startSquare endSquare color =
-    let file = int (endSquare.File - startSquare.File)
-    let rank = int (endSquare.Rank - startSquare.Rank)
-
-    match file, rank, color, startSquare with
-    | 0,  1, White, _
-    | 0, -1, Black, _
-    | 0,  2, White, { Rank = Rank._2 }
-    | 0, -2, Black, { Rank = Rank._7 } -> Forward
-
-    | -2, 0, White, { Notation = "e1" } -> Castling (White, QueenSide)
-    | +2, 0, White, { Notation = "e1" } -> Castling (White, KingSide)
-    | -2, 0, Black, { Notation = "e8" } -> Castling (Black, QueenSide)
-    | +2, 0, Black, { Notation = "e8" } -> Castling (Black, KingSide)
-
-    | _ ->
-      match Square.tryComputePath startSquare endSquare with
-      | Some path ->
-        match path.Angle with
-        | Angle.Horizontal | Angle.Vertical -> Rectilinear path
-        | Angle.Diagonal -> Diagonal path
-        | _ -> Other
-      | None ->
-        match abs file, abs rank with
-        | f, r when f + r = 3 && abs(f - r) = 1 -> Jump
-        | _ -> Other
-
   type CheckPlayerFn = ColoredPiece -> Game -> CheckResult option
 
   let rec private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation)
@@ -80,8 +53,23 @@ module Game =
     let isOccupied square =
       game.Board |> Map.containsKey square
 
+    let notAllowed (move: string) (reason: string) =
+      let message = $"{move} {pieceLocation}-{targetLocation} not allowed"
+      if System.String.IsNullOrWhiteSpace(reason)
+      then message
+      else $"{message}: {reason}"
+
+    let castlingNotAllowed = "castling" |> notAllowed
+    let moveNotAllowed = "move" |> notAllowed
+
     let tryFindPieceAt square =
       game.Board |> Map.tryFind square
+
+    let verifyPathFree path =
+      let occupiedSquares = path |> List.filter isOccupied
+      match occupiedSquares with
+      | []   -> Ok ()
+      | x::_ -> Error <| moveNotAllowed $"{x.Notation} occupied"
 
     let verifySquaresDistinct =
       let pieceSquare  = Square.parse pieceLocation
@@ -91,21 +79,20 @@ module Game =
       else
         Ok (pieceSquare, targetSquare)
 
-    let verifyTurnToPlay piece =
-      if game.Turn <> piece.Color then
-        Error $"not {piece.Color}'s turn to play"
-      else
-        Ok piece
-
     let verifyTarget targetSquare turn =
       let targetPiece = tryFindPieceAt targetSquare
       match targetPiece with
-      | Some { Color = targetColor } when targetColor = turn
-        -> Error $"move to {targetSquare.Notation} not allowed: square occupied by own piece"
-      | _
-        -> Ok targetPiece
+      | Some { Color = targetColor } when targetColor = turn ->
+        Error <| moveNotAllowed "square occupied by own piece"
+      | _ ->
+        Ok targetPiece
 
-    let verifyCastlingPathNotUnderAttack path targetSquare =
+    let verifyTurnToPlay piece =
+      if game.Turn <> piece.Color
+      then Error $"not {piece.Color}'s turn to play"
+      else Ok piece
+
+    let verifyCastlingPathNotUnderAttack path =
       let isSquareUnderAttackBy (adversary, square) =
         let attackResult =
           game
@@ -121,76 +108,76 @@ module Game =
 
       match squareUnderAttack with
       | Some (x, y) ->
-        Error $"castling to {targetSquare.Notation} not allowed: king cannot pass through {y.Notation} under attack by {x.Notation}"
+        Error <| castlingNotAllowed $"king cannot pass through {y.Notation} under attack by {x.Notation}"
       | _ -> Ok ()
 
-    let verifyPathFree path targetSquare =
-      let occupiedSquares = path |> List.filter isOccupied
-      match occupiedSquares with
-      | [] -> Ok ()
-      | [x] -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
-      | x::_ -> Error $"move to {targetSquare.Notation} not allowed: {x.Notation} occupied"
+    let verifyCastling coloredPiece castling =
+      let verifyPieceHasNotMoved name location =
+        let hasMoved = game.Moves |> List.exists (fun { From = from } -> from = location)
+        match hasMoved with
+        | true ->
+          Error <| castlingNotAllowed $"{name} has previously moved"
+        | _ -> Ok ()
 
-    let verifyPieceMove coloredPiece move targetPiece targetSquare =
+      let verifyNotInCheck () =
+        match game |> checkPlayer coloredPiece with
+        | Some (Check check) ->
+          let checkers = check.By |> List.map (fun x -> x.Notation)
+          Error <| castlingNotAllowed $"king is currently in check by {checkers}"
+        | _ -> Ok ()
+
+      monad' {
+        do! verifyNotInCheck ()
+        do! verifyPieceHasNotMoved "king" pieceLocation
+        do! verifyPieceHasNotMoved "rook" castling.RookSquare.Notation
+        do! verifyPathFree castling.InnerSquares
+          |> Result.mapError (fun err -> err.Replace("move", "castling"))
+        do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.truncate 2)
+        return!
+          tryFindPieceAt castling.RookSquare
+          |> Option.filter (fun x -> x.Piece = Rook && x.Color = coloredPiece.Color)
+          |> Option.map ignore
+          |> toResult (castlingNotAllowed $"no rook at {castling.RookSquare.Notation}")
+      };
+
+    let verifyPawnMove turn move targetPiece =
+      match move with
+      | OneSquareForward ->
+        match targetPiece with
+        | None -> Ok ()
+        | _ -> Error <| moveNotAllowed "forward square occupied and pawn cannot capture forward"
+
+      | Diagonal { InnerSquares = []; Angle = Oblique (_, Forward) } ->
+        match targetPiece with
+        | Some { Color = targetColor } when targetColor <> turn -> Ok ()
+        | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
+
+      | _ -> Error <| moveNotAllowed $"for {Pawn}"
+
+    let verifyPieceMove coloredPiece move targetPiece =
       let { Color = turn; Piece = piece } = coloredPiece
       match piece, move with
       | Knight, Jump
-      | Queen, Forward
-      | Rook, Forward
-      | King, Forward
-      | King, Diagonal { InnerSquares = [] }
-      | King, Rectilinear { InnerSquares = [] }
-        -> Ok ()
+      | Queen, OneSquare
+      | King, OneSquare
+      | Rook, OneSquareForward ->
+        Ok ()
 
       | Queen, Diagonal { InnerSquares = insidePath }
       | Bishop, Diagonal { InnerSquares = insidePath }
       | Rook, Rectilinear { InnerSquares = insidePath }
-      | Queen, Rectilinear { InnerSquares = insidePath }
-        -> verifyPathFree insidePath targetSquare
+      | Queen, Rectilinear { InnerSquares = insidePath } ->
+        verifyPathFree insidePath
 
-      | King, Castling c ->
-        let castling = c |> Castling.info
-        let verifyPieceHasNotMoved name location =
-          let kingHasMoved = game.Moves |> List.exists (fun { From = from } -> from = location)
-          match kingHasMoved with
-          | true ->
-            Error $"castling to {targetSquare.Notation} not allowed: {name} has previously moved"
-          | _ -> Ok ()
-        let verifyNotInCheck () =
-          match game |> checkPlayer coloredPiece with
-          | Some (Check check) ->
-            let checkers = check.By |> List.map (fun x -> x.Notation)
-            Error $"castling to {targetSquare.Notation} not allowed: king is currently in check by {checkers}"
-          | _ -> Ok ()
-        monad' {
-          do! verifyNotInCheck ()
-          do! verifyPieceHasNotMoved "king" pieceLocation
-          do! verifyPieceHasNotMoved "rook" castling.RookSquare.Notation
-          do! verifyPathFree castling.InnerSquares targetSquare
-            |> Result.mapError (fun err -> err.Replace("move", "castling"))
-          do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.truncate 2) targetSquare
-          return!
-            tryFindPieceAt castling.RookSquare
-            |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
-            |> Option.map ignore
-            |> toResult $"castling to {targetSquare.Notation} not allowed: no rook at {castling.RookSquare.Notation}"
-        };
+      | King, Castling castling ->
+        castling
+        |> Castling.info
+        |> verifyCastling coloredPiece
 
-      | Pawn, Forward ->
-        // Pawn cannot capture forward -> targetSquare must be free
-        match targetPiece with
-        | None -> Ok ()
-        | _ -> Error $"move to {targetSquare.Notation} not allowed: square occupied"
+      | Pawn, _ ->
+        verifyPawnMove turn move targetPiece
 
-      | Pawn, Diagonal  { InnerSquares = [] } ->
-        // Capture adversary piece?
-        match targetPiece with
-        | Some { Color = targetColor } when targetColor <> turn
-          -> Ok ()
-        | _
-          -> Error $"move to {targetSquare.Notation} not allowed: no piece to capture by Pawn"
-
-      | _ -> Error $"move to {targetSquare.Notation} not allowed for {piece}"
+      | _ -> Error <| moveNotAllowed $"for {piece}"
 
     let moveRookDuringCastling move board =
       match move with
@@ -212,7 +199,7 @@ module Game =
       let! targetPiece = verifyTarget targetSquare game.Turn
 
       let move = computeMove pieceSquare targetSquare movedPiece.Color
-      do! verifyPieceMove movedPiece move targetPiece targetSquare
+      do! verifyPieceMove movedPiece move targetPiece
 
       let promotedPiece =
         match (movedPiece, targetSquare) with

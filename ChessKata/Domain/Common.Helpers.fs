@@ -3,6 +3,11 @@ module ChessKata.Common.Helpers
 open System
 open System.Text.RegularExpressions
 
+let (|Negative|Positive|Zero|) = function
+  | n when n < 0 -> Negative
+  | n when n > 0 -> Positive
+  | _ -> Zero
+
 let (|Regex|_|) pattern input =
   let m = Regex.Match(input, pattern)
   if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
@@ -12,7 +17,7 @@ let toResult errorIfNone = function
   | Some x -> Ok x
   | None -> Error errorIfNone
 
-let enumValues<'a when 'a :> Enum> = (Enum.GetValues(typeof<'a>) :?> ('a [])) |> Array.toList
+let enumValues<'a when 'a :> Enum> = (Enum.GetValues(typeof<'a>) :?> 'a []) |> Array.toList
 
 let sign x =
     match x with

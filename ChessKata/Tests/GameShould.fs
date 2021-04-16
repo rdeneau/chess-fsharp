@@ -132,8 +132,8 @@ let ``Reject moving bishop when blocked on the way`` () =
     |> addRank 3 "➖➖♙➖➖➖➖➖"
     |> addRank 2 "➖❓➖➖➖♙➖➖"
     |> addRank 1 "➖➖➖♔➖➖❓➖"
-  (game |> Game.movePiece "d4" "b2") =! Error "move to b2 not allowed: c3 occupied"
-  (game |> Game.movePiece "d4" "g1") =! Error "move to g1 not allowed: f2 occupied"
+  (game |> Game.movePiece "d4" "b2") =! Error "move d4-b2 not allowed: c3 occupied"
+  (game |> Game.movePiece "d4" "g1") =! Error "move d4-g1 not allowed: f2 occupied"
 
 [<Fact>]
 let ``Move rook to an empty square rectilinear`` () =
@@ -280,6 +280,18 @@ let ``Reject moving pawn to 1-square diagonal occupied by another own piece`` ()
       3, "➖➖♙➖➖➖➖♔" ]
 
 [<Fact>]
+let ``Pawn cannot capture in diagonal backward`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 7 "♙➖➖➖➖➖➖➖"
+    |> addRank 6 "➖♟➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+
+  (game |> Game.movePiece "a7" "b6") =! Error "move a7-b6 not allowed: for Pawn"
+
+[<Fact>]
 let ``Promote black pawn moved to 1th rank`` () =
   let game =
     emptyGame
@@ -399,12 +411,12 @@ let ``Reject castling given missing rook`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "❌➖❓➖♚➖❓❌"
     |> addRank 1 "❌➖❓➖♔➖❓❌"
-  (game |> Game.movePiece "e1" "c1") =! Error "castling to c1 not allowed: no rook at a1"
-  (game |> Game.movePiece "e1" "g1") =! Error "castling to g1 not allowed: no rook at h1"
+  (game |> Game.movePiece "e1" "c1") =! Error "castling e1-c1 not allowed: no rook at a1"
+  (game |> Game.movePiece "e1" "g1") =! Error "castling e1-g1 not allowed: no rook at h1"
 
   let game = game |> Game.toggleTurn
-  (game |> Game.movePiece "e8" "c8") =! Error "castling to c8 not allowed: no rook at a8"
-  (game |> Game.movePiece "e8" "g8") =! Error "castling to g8 not allowed: no rook at h8"
+  (game |> Game.movePiece "e8" "c8") =! Error "castling e8-c8 not allowed: no rook at a8"
+  (game |> Game.movePiece "e8" "g8") =! Error "castling e8-g8 not allowed: no rook at h8"
 
 [<Fact>]
 let ``Reject castling given path blocked`` () =
@@ -413,12 +425,12 @@ let ``Reject castling given path blocked`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "♜♞❓♛♚➖♞♜"
     |> addRank 1 "♖♘❓➖♔♗❓♖"
-  (game |> Game.movePiece "e1" "c1") =! Error "castling to c1 not allowed: b1 occupied"
-  (game |> Game.movePiece "e1" "g1") =! Error "castling to g1 not allowed: f1 occupied"
+  (game |> Game.movePiece "e1" "c1") =! Error "castling e1-c1 not allowed: b1 occupied"
+  (game |> Game.movePiece "e1" "g1") =! Error "castling e1-g1 not allowed: f1 occupied"
 
   let game = game |> Game.toggleTurn
-  (game |> Game.movePiece "e8" "c8") =! Error "castling to c8 not allowed: d8 occupied" // Indicate first blockage (d8, not b8)
-  (game |> Game.movePiece "e8" "g8") =! Error "move to g8 not allowed: square occupied by own piece"
+  (game |> Game.movePiece "e8" "c8") =! Error "castling e8-c8 not allowed: d8 occupied" // Indicate first blockage (d8, not b8)
+  (game |> Game.movePiece "e8" "g8") =! Error "move e8-g8 not allowed: square occupied by own piece"
 
 [<Fact>]
 let ``Perform castling move`` () =
@@ -442,7 +454,7 @@ let ``Reject castling given king is currently in check`` () =
     |> addRank 8 "➖➖♚➖♜➖➖➖"
     |> addRank 1 "♖➖➖➖♔➖➖♖"
   game |> Game.movePiece "e1" "c1"
-    =! Error "castling to c1 not allowed: king is currently in check by [e8]"
+    =! Error "castling e1-c1 not allowed: king is currently in check by [e8]"
 
 [<Fact>]
 let ``Reject castling given king passes through a square under attack`` () =
@@ -452,7 +464,7 @@ let ``Reject castling given king passes through a square under attack`` () =
     |> addRank 8 "➖➖♚♜➖➖➖➖"
     |> addRank 1 "♖➖➖➖♔➖➖♖"
   game |> Game.movePiece "e1" "c1"
-    =! Error "castling to c1 not allowed: king cannot pass through d1 under attack by d8"
+    =! Error "castling e1-c1 not allowed: king cannot pass through d1 under attack by d8"
 
   // Ok if b1 under attack: not in the king path
   let game =
@@ -487,7 +499,7 @@ let ``Reject castling given king has previously moved`` () =
       game2
       |> Game.toggleTurn
       |> Game.movePiece "e1" "c1"
-  } =! Error "castling to c1 not allowed: king has previously moved"
+  } =! Error "castling e1-c1 not allowed: king has previously moved"
 
 [<Fact>]
 let ``Reject castling given rook has previously moved`` () =
@@ -511,4 +523,4 @@ let ``Reject castling given rook has previously moved`` () =
       game2
       |> Game.toggleTurn
       |> Game.movePiece "e1" "c1"
-  } =! Error "castling to c1 not allowed: rook has previously moved"
+  } =! Error "castling e1-c1 not allowed: rook has previously moved"
