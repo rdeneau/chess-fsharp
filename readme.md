@@ -32,16 +32,13 @@ Move a piece specified by its square to a destination square, verifying the rule
 - [x] Reject board missing either *King*
   - ⚠️ Might imply adapting previous tests !
 - [x] Reject any move ending up in own *Check*
+
+## 4. Extra moves *(check or past moves needed)*
+
+- [x] Handle [castling](https://en.wikipedia.org/wiki/Castling)
+- [ ] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
+
+## 5. Mate
+
 - [ ] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
 - [ ] Detect [Stalemate](https://en.wikipedia.org/wiki/Stalemate)
-
-## 4. Extra moves *(past moves needed)*
-
-- [ ] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
-- [ ] Handle [castling](https://en.wikipedia.org/wiki/Castling)
-
-## TODO
-
-- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/modules#recursive-modules
-- Using tick: performAction -> action' ?
-- Using ||> with List.fold (or check better alternative to fold)
