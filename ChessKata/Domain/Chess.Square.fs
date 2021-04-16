@@ -14,11 +14,15 @@ type SquareNotation = string // E.g. "a1"
 
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
 
+type Side = QueenSide | KingSide
+type Direction = Backward | Forward
+
+type Angle =
+  | Horizontal of Side
+  | Vertical of Direction
+  | Oblique of Side * Direction
+
 type Path = { InnerSquares: Square list; Angle : Angle }
-and Angle =
-  | Horizontal =  0
-  | Diagonal   = 45
-  | Vertical   = 90
 
 module Square =
   let tryParse (notation: SquareNotation) =
@@ -55,22 +59,34 @@ module Square =
       |> enum<Rank>
     create file rank
 
-  let tryComputePath startSquare endSquare =
+  let private horizontal fileDiff =
+    match fileDiff with
+    | Negative -> QueenSide
+    | Positive -> KingSide
+    | _ -> failwith "not horizontal"
+
+  let private vertical rankDiff color =
+    match color, rankDiff with
+    | White, Positive | Black, Negative -> Forward
+    | White, Negative | Black, Positive -> Backward
+    | _ -> failwith "not vertical"
+
+  let tryComputePath startSquare endSquare color =
     let fileDiff = int (endSquare.File - startSquare.File)
     let rankDiff = int (endSquare.Rank - startSquare.Rank)
 
     monad' {
-      let! (numberOfSquares, angle) =
-        match abs fileDiff, abs rankDiff with
-        | 0, 0            -> None
-        | 0, r            -> Some (r, Angle.Vertical)
-        | f, 0            -> Some (f, Angle.Horizontal)
-        | f, r when f = r -> Some (f, Angle.Diagonal)
-        | _               -> None
+      let! numberOfSquares, angle =
+        match fileDiff, rankDiff with
+        | 0, 0 -> None
+        | 0, r -> Some (r, Vertical (vertical r color))
+        | f, 0 -> Some (f, Horizontal (horizontal f))
+        | f, r when (abs f) = (abs r) -> Some (f, Oblique (horizontal f, vertical r color))
+        | _ -> None
 
       let fullPath =
         List.init
-          (numberOfSquares + 1)
+          ((abs numberOfSquares) + 1)
           (fun i -> startSquare |> offset (i * sign fileDiff, i * sign rankDiff))
 
       return { InnerSquares = trimList fullPath; Angle = angle }

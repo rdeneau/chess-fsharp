@@ -9,16 +9,24 @@ let formatSquares squares =
   let res = squares |> List.map (fun x -> x.Notation)
   res.ToString ()
 
+let data =
+  let x = TheoryData<SquareNotation, SquareNotation, Color, string, Angle>()
+  x.Add ("e1", "f1", White, "[]", Horizontal KingSide)
+  x.Add ("e1", "g1", White, "[f1]", Horizontal KingSide)
+  x.Add ("e1", "b1", White, "[d1; c1]", Horizontal QueenSide)
+  x.Add ("a1", "e1", White, "[b1; c1; d1]", Horizontal KingSide)
+  x.Add ("a1", "a4", White, "[a2; a3]", Vertical Forward)
+  x.Add ("e5", "e1", White, "[e4; e3; e2]", Vertical Backward)
+  x.Add ("e5", "e1", Black, "[e4; e3; e2]", Vertical Forward)
+  x.Add ("a1", "d4", White, "[b2; c3]", Oblique (KingSide, Forward))
+  x.Add ("d1", "a4", White, "[c2; b3]", Oblique (QueenSide, Forward))
+  x.Add ("d1", "a4", Black, "[c2; b3]", Oblique (QueenSide, Backward))
+  x
+
 [<Theory>]
-[<InlineData("e1", "f1", "[]", Angle.Horizontal)>]
-[<InlineData("e1", "g1", "[f1]", Angle.Horizontal)>]
-[<InlineData("e1", "b1", "[d1; c1]", Angle.Horizontal)>]
-[<InlineData("a1", "e1", "[b1; c1; d1]", Angle.Horizontal)>]
-[<InlineData("a1", "a4", "[a2; a3]", Angle.Vertical)>]
-[<InlineData("e5", "e1", "[e4; e3; e2]", Angle.Vertical)>]
-[<InlineData("a1", "d4", "[b2; c3]", Angle.Diagonal)>]
-let ``Compute valid path`` startSquare endSquare expectedInner expectedAngle =
-  let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse)
+[<MemberData(nameof data)>]
+let ``Compute valid path`` startSquare endSquare color expectedInner expectedAngle =
+  let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse) color
   match result with
   | Some path -> (path.InnerSquares |> formatSquares, path.Angle) =! (expectedInner, expectedAngle)
   | None -> failwith "Expected valid path"
@@ -28,5 +36,5 @@ let ``Compute valid path`` startSquare endSquare expectedInner expectedAngle =
 [<InlineData("a1", "b4")>]
 [<InlineData("a1", "a1")>]
 let ``Compute invalid path`` startSquare endSquare =
-  let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse)
+  let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse) White
   result =! None
