@@ -465,7 +465,31 @@ let ``Reject castling given king passes through a square under attack`` () =
   |> Result.map ignore
   =! Ok()
 
-[<Fact(Skip = "TODO")>] // TODO
+[<Fact>]
+let ``Reject castling given king has previously moved`` () =
+  monad' {
+    // Move king forth...
+    let! game1 =
+      emptyGame
+      |> addRank 9 "ａｂｃｄｅｆｇｈ"
+      |> addRank 8 "➖➖♚➖➖➖➖➖"
+      |> addRank 1 "♖➖➖➖♔➖➖♖"
+      |> Game.movePiece "e1" "f1"
+
+    // ... and back
+    let! game2 =
+      game1
+      |> Game.toggleTurn
+      |> Game.movePiece "f1" "e1"
+
+    // Attempt a castling
+    return!
+      game2
+      |> Game.toggleTurn
+      |> Game.movePiece "e1" "c1"
+  } =! Error "castling to c1 not allowed: king has previously moved"
+
+[<Fact>]
 let ``Reject castling given rook has previously moved`` () =
   monad' {
     // Move rook forth...
@@ -475,16 +499,16 @@ let ``Reject castling given rook has previously moved`` () =
       |> addRank 8 "➖➖♚➖➖➖➖➖"
       |> addRank 1 "♖➖➖➖♔➖➖♖"
       |> Game.movePiece "a1" "a2"
+
     // ... and back
     let! game2 =
       game1
       |> Game.toggleTurn
       |> Game.movePiece "a2" "a1"
+
     // Attempt a castling
     return!
       game2
       |> Game.toggleTurn
-      |> Game.movePiece "a1" "c1"
+      |> Game.movePiece "e1" "c1"
   } =! Error "castling to c1 not allowed: rook has previously moved"
-
-// TODO ``Reject castling given king has previously moved``

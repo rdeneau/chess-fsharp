@@ -150,17 +150,25 @@ module Game =
 
       | King, Castling c ->
         let castling = c |> Castling.info
-        let verifiedNotInCheck =
+        let verifyPieceHasNotMoved name location =
+          let kingHasMoved = game.Moves |> List.exists (fun { From = from } -> from = location)
+          match kingHasMoved with
+          | true ->
+            Error $"castling to {targetSquare.Notation} not allowed: {name} has previously moved"
+          | _ -> Ok ()
+        let verifyNotInCheck () =
           match game |> checkPlayer coloredPiece with
           | Some (Check check) ->
             let checkers = check.By |> List.map (fun x -> x.Notation)
             Error $"castling to {targetSquare.Notation} not allowed: king is currently in check by {checkers}"
           | _ -> Ok ()
         monad' {
-          do! verifiedNotInCheck
+          do! verifyNotInCheck ()
+          do! verifyPieceHasNotMoved "king" pieceLocation
+          do! verifyPieceHasNotMoved "rook" castling.RookSquare.Notation
           do! verifyPathFree castling.InnerSquares targetSquare
             |> Result.mapError (fun err -> err.Replace("move", "castling"))
-          do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.take 2) targetSquare
+          do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.truncate 2) targetSquare
           return!
             tryFindPieceAt castling.RookSquare
             |> Option.filter (fun x -> x.Piece = Rook && x.Color = turn)
