@@ -158,8 +158,8 @@ let ``Reject moving rook when blocked on the way`` () =
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖♙➖➖➖➖"
     |> addRank 1 "➖♔➖❓➖➖➖➖"
-  (game |> Game.movePiece "d4" "d1") =! Error "move to d1 not allowed: d2 occupied"
-  (game |> Game.movePiece "d4" "h4") =! Error "move to h4 not allowed: g4 occupied"
+  (game |> Game.movePiece "d4" "d1") =! Error "move d4-d1 not allowed: d2 occupied"
+  (game |> Game.movePiece "d4" "h4") =! Error "move d4-h4 not allowed: g4 occupied"
 
 [<Fact>]
 let ``Move queen to an empty square reachable`` () =
@@ -194,7 +194,7 @@ let ``Reject moving queen when blocked on the way`` () =
     "d1", "d2"
     "g1", "f2" ]
   |> List.iter (fun (dest, blockedBy) ->
-    (game |> Game.movePiece "d4" dest) =! Error $"move to {dest} not allowed: {blockedBy} occupied" )
+    (game |> Game.movePiece "d4" dest) =! Error $"move d4-{dest} not allowed: {blockedBy} occupied" )
 
 [<Fact>]
 let ``Move queen capturing adversary piece`` () =
@@ -290,6 +290,19 @@ let ``Pawn cannot capture in diagonal backward`` () =
     |> addRank 1 "➖➖➖➖➖♔➖➖"
 
   (game |> Game.movePiece "a7" "b6") =! Error "move a7-b6 not allowed: for Pawn"
+
+[<Fact>]
+let ``Pawn cannot jump forward`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 4 "➖➖❓➖➖➖➖➖"
+    |> addRank 3 "➖➖♘➖➖➖➖➖"
+    |> addRank 2 "➖➖♙➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+
+  (game |> Game.movePiece "c2" "c4") =! Error "move c2-c4 not allowed: c3 occupied"
 
 [<Fact>]
 let ``Promote black pawn moved to 1th rank`` () =

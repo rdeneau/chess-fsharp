@@ -22,7 +22,7 @@ type Angle =
   | Vertical of Direction
   | Oblique of Side * Direction
 
-type Path = { InnerSquares: Square list; Angle : Angle }
+type Path = { InnerSquares: Square list; Angle: Angle }
 
 module Square =
   let tryParse (notation: SquareNotation) =

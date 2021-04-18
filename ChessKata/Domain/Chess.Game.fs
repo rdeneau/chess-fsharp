@@ -37,6 +37,11 @@ module Game =
       |> Map.add targetSquare piece
     { game with Board = board }
 
+  let pieceHasNeverMoved location game =
+    game.Moves
+    |> List.exists (fun { From = from } -> from = location)
+    |> not
+
   let tryLocatePiece pieceSymbol game : Square option =
     game.Board
     |> Map.tryFindKey (fun _ piece -> piece.Symbol = pieceSymbol)
@@ -74,10 +79,9 @@ module Game =
     let verifySquaresDistinct =
       let pieceSquare  = Square.parse pieceLocation
       let targetSquare = Square.parse targetLocation
-      if pieceSquare = targetSquare then
-        Error "no move"
-      else
-        Ok (pieceSquare, targetSquare)
+      match pieceSquare = targetSquare with
+      | true  -> Error "no move"
+      | false -> Ok (pieceSquare, targetSquare)
 
     let verifyTarget targetSquare turn =
       let targetPiece = tryFindPieceAt targetSquare
@@ -112,12 +116,10 @@ module Game =
       | _ -> Ok ()
 
     let verifyCastling coloredPiece castling =
-      let verifyPieceHasNotMoved name location =
-        let hasMoved = game.Moves |> List.exists (fun { From = from } -> from = location)
-        match hasMoved with
-        | true ->
-          Error <| castlingNotAllowed $"{name} has previously moved"
-        | _ -> Ok ()
+      let verifyPieceHasNeverMoved name location =
+        match game |> pieceHasNeverMoved location with
+        | false -> Error <| castlingNotAllowed $"{name} has previously moved"
+        | true  -> Ok ()
 
       let verifyNotInCheck () =
         match game |> checkPlayer coloredPiece with
@@ -128,8 +130,8 @@ module Game =
 
       monad' {
         do! verifyNotInCheck ()
-        do! verifyPieceHasNotMoved "king" pieceLocation
-        do! verifyPieceHasNotMoved "rook" castling.RookSquare.Notation
+        do! verifyPieceHasNeverMoved "king" pieceLocation
+        do! verifyPieceHasNeverMoved "rook" castling.RookSquare.Notation
         do! verifyPathFree castling.InnerSquares
           |> Result.mapError (fun err -> err.Replace("move", "castling"))
         do! verifyCastlingPathNotUnderAttack (castling.InnerSquares |> List.truncate 2)
@@ -138,44 +140,47 @@ module Game =
           |> Option.filter (fun x -> x.Piece = Rook && x.Color = coloredPiece.Color)
           |> Option.map ignore
           |> toResult (castlingNotAllowed $"no rook at {castling.RookSquare.Notation}")
-      };
+      }
 
-    let verifyPawnMove turn move targetPiece =
-      match move with
-      | OneSquareForward ->
-        match targetPiece with
-        | None -> Ok ()
-        | _ -> Error <| moveNotAllowed "forward square occupied and pawn cannot capture forward"
-
-      | Diagonal { InnerSquares = []; Angle = Oblique (_, Forward) } ->
-        match targetPiece with
-        | Some { Color = targetColor } when targetColor <> turn -> Ok ()
-        | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
-
-      | _ -> Error <| moveNotAllowed $"for {Pawn}"
+    let verifyPawnMoveForward insidePath targetPiece =
+      monad' {
+        let moveLength = 1 + List.length insidePath
+        let hasNeverMoved = game |> pieceHasNeverMoved pieceLocation
+        do! match moveLength, hasNeverMoved with
+            | 1, _     -> Ok ()
+            | 2, true  -> verifyPathFree insidePath
+            | 2, false -> Error <| moveNotAllowed "pawn has previously moved"
+            | n, _     -> Error <| moveNotAllowed $"pawn cannot move forward on more than 2 squares, here {n}"
+        do! match targetPiece with
+            | None   -> Ok ()
+            | Some _ -> Error <| moveNotAllowed "forward square occupied and pawn cannot capture forward"
+      }
 
     let verifyPieceMove coloredPiece move targetPiece =
       let { Color = turn; Piece = piece } = coloredPiece
       match piece, move with
       | Knight, Jump
-      | Queen, OneSquare
-      | King, OneSquare
-      | Rook, OneSquareForward ->
+      | King, OneSquare ->
         Ok ()
-
-      | Queen, Diagonal { InnerSquares = insidePath }
-      | Bishop, Diagonal { InnerSquares = insidePath }
-      | Rook, Rectilinear { InnerSquares = insidePath }
-      | Queen, Rectilinear { InnerSquares = insidePath } ->
-        verifyPathFree insidePath
 
       | King, Castling castling ->
         castling
         |> Castling.info
         |> verifyCastling coloredPiece
 
-      | Pawn, _ ->
-        verifyPawnMove turn move targetPiece
+      | Bishop, Diagonal { InnerSquares = insidePath }
+      | Queen, Diagonal { InnerSquares = insidePath }
+      | Queen, Rectilinear { InnerSquares = insidePath }
+      | Rook, Rectilinear { InnerSquares = insidePath } -> // TODO: rook uniquement horizontal -> ajouter un TU
+        verifyPathFree insidePath
+
+      | Pawn, Rectilinear { InnerSquares = insidePath; Angle = Vertical Forward } ->
+        verifyPawnMoveForward insidePath targetPiece
+
+      | Pawn, OneSquare & Diagonal { Angle = Oblique (_, Forward) } -> // TODO: diagonal = oblique !
+        match targetPiece with
+        | Some { Color = targetColor } when targetColor <> turn -> Ok ()
+        | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
 
       | _ -> Error <| moveNotAllowed $"for {piece}"
 

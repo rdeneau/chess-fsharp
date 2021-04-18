@@ -22,7 +22,6 @@ module Castling =
     | Black, KingSide  -> makeInfo "h8" "f8" ["f8"; "g8"]
 
 type Move =
-  | OneSquareForward
   | Rectilinear of Path
   | Diagonal of Path
   | Castling of Castling
@@ -35,24 +34,18 @@ module Move =
     match move with
     | Rectilinear { InnerSquares = [] }
     | Diagonal { InnerSquares = [] }
-    | OneSquareForward -> Some OneSquare
     | _ -> None
 
   let computeMove startSquare endSquare color =
     let file = int (endSquare.File - startSquare.File)
     let rank = int (endSquare.Rank - startSquare.Rank)
 
-    match file, rank, color, startSquare with
-    | 0,  1, White, _
-    | 0, -1, Black, _
-    | 0,  2, White, { Rank = Rank._2 }
-    | 0, -2, Black, { Rank = Rank._7 } -> OneSquareForward
-
-    | -2, 0, White, { Notation = "e1" } -> Castling (White, QueenSide)
-    | +2, 0, White, { Notation = "e1" } -> Castling (White, KingSide)
-    | -2, 0, Black, { Notation = "e8" } -> Castling (Black, QueenSide)
-    | +2, 0, Black, { Notation = "e8" } -> Castling (Black, KingSide)
-
+    let { Notation = startSquareNotation } = startSquare
+    match color, startSquareNotation, file, rank with
+    | White, "e1", -2, 0 -> Castling (White, QueenSide)
+    | White, "e1", +2, 0 -> Castling (White, KingSide)
+    | Black, "e8", -2, 0 -> Castling (Black, QueenSide)
+    | Black, "e8", +2, 0 -> Castling (Black, KingSide)
     | _ ->
       match Square.tryComputePath startSquare endSquare color with
       | Some path ->
