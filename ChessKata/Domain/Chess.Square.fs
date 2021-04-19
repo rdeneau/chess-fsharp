@@ -93,3 +93,12 @@ module Square =
 
       return { InsidePath = trimList fullPath; Angle = angle }
     }
+
+  let areAdjacent a b =
+    let squareA = parse a
+    let squareB = parse b
+
+    let sameRank = squareA.Rank = squareB.Rank
+    let fileDiff = (int squareA.File) - (int squareB.File)
+
+    sameRank && (abs fileDiff = 1)

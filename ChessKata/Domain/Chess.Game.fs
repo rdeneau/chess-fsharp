@@ -1,12 +1,13 @@
 namespace ChessKata.Domain
 
 open ChessKata.Common.Helpers
+open ColoredPiecePatterns
 open FSharpPlus
 
 type CheckResult = Check of CheckInfo // TODO | Mate
  and CheckInfo = { Of: Color; By: Square list }
 
-type MoveLog = { From: SquareNotation; To: SquareNotation }
+type MoveLog = { From: SquareNotation; To: SquareNotation; By: ColoredPiece; }
 
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color; Moves: MoveLog list }
 
@@ -17,13 +18,16 @@ module Game =
     let board = game.Board |> Map.add square piece
     { game with Board = board }
 
-  let private adversarySquares game =
+  let private squaresOfOpposingPieces game =
     game.Board
     |> Map.filter (fun _ piece -> piece.Color <> game.Turn)
     |> Map.keys
 
-  let logMove pieceLocation targetLocation game =
-    { game with Moves = { From = pieceLocation; To = targetLocation } :: game.Moves }
+  let logMove pieceLocation targetLocation by game =
+    let moveToLog = { From = pieceLocation
+                      To   = targetLocation
+                      By   = by }
+    { game with Moves = moveToLog :: game.Moves }
 
   let reposition pieceLocation targetLocation game : Game =
     let pieceSquare = Square.parse pieceLocation
@@ -83,13 +87,11 @@ module Game =
       | true  -> Error "no move"
       | false -> Ok (pieceSquare, targetSquare)
 
-    let verifyTarget targetSquare turn =
+    let verifyTarget targetSquare player =
       let targetPiece = tryFindPieceAt targetSquare
       match targetPiece with
-      | Some { Color = targetColor } when targetColor = turn ->
-        Error <| moveNotAllowed "square occupied by own piece"
-      | _ ->
-        Ok targetPiece
+      | Some (OwnPieceOf player) -> Error <| moveNotAllowed "square occupied by own piece"
+      | _ -> Ok targetPiece
 
     let verifyTurnToPlay piece =
       if game.Turn <> piece.Color
@@ -107,7 +109,7 @@ module Game =
         | Error _ -> false
 
       let squareUnderAttack =
-        Seq.allPairs (game |> adversarySquares) (path |> Seq.ofList)
+        Seq.allPairs (game |> squaresOfOpposingPieces) (path |> Seq.ofList)
         |> Seq.tryFind isSquareUnderAttackBy
 
       match squareUnderAttack with
@@ -142,10 +144,40 @@ module Game =
           |> toResult (castlingNotAllowed $"no rook at {castling.RookSquare.Notation}")
       }
 
+    let verifyPawnCaptureEnPassant player =
+      let isOnFifthRank =
+        let { Rank = rank } = Square.parse pieceLocation
+        match player, rank with
+        | White, Rank._5
+        | Black, Rank._3 -> true
+        | _              -> false
+
+      let hasPreviousMove, fromTwoSquareAhead, upToAdjacentSquare =
+        match game.Moves with
+        | { From = from; To = dest; By = { Color = enemy; Piece = Pawn } } :: _ ->
+          let isAdjacent = Square.areAdjacent pieceLocation dest
+          let previousMove = computeMove (Square.parse from) (Square.parse dest) enemy
+          let twoSquareBeforeDest =
+            match previousMove with
+            | Vertical _ & ForwardBy 2<square> -> true
+            | _ -> false
+          true, twoSquareBeforeDest, isAdjacent
+        | _ ->
+          false, false, false
+
+      match isOnFifthRank && hasPreviousMove && fromTwoSquareAhead && upToAdjacentSquare with
+      | true -> Ok ()
+      | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
+
+    let verifyPawnMoveDiagonally targetPiece player =
+      match targetPiece with
+      | Some (OpposingPieceOf player) -> Ok () // Capture opposing piece
+      | _ -> verifyPawnCaptureEnPassant player
+
     let verifyPawnMoveForward insidePath nbSquares targetPiece turn =
       monad' {
-        let { Rank = rank } = Square.parse pieceLocation
         let hasNeverMoved =
+          let { Rank = rank } = Square.parse pieceLocation
           match turn, rank with
           | White, Rank._2
           | Black, Rank._7 -> true
@@ -182,13 +214,11 @@ module Game =
       | Rook, Vertical    { InsidePath = insidePath } ->
         verifyPathFree insidePath
 
+      | Pawn, Diagonal _ & ForwardBy 1<square> ->
+        verifyPawnMoveDiagonally targetPiece turn
+
       | Pawn, Vertical { InsidePath = insidePath } & ForwardBy nbSquares ->
         verifyPawnMoveForward insidePath nbSquares targetPiece turn
-
-      | Pawn, Diagonal _ & ForwardBy 1<square> ->
-        match targetPiece with
-        | Some { Color = targetColor } when targetColor <> turn -> Ok ()
-        | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
 
       | _ -> Error <| moveNotAllowed $"for {piece}"
 
@@ -228,7 +258,7 @@ module Game =
 
       return
         { game with Board = board }
-        |> logMove pieceLocation targetLocation
+        |> logMove pieceLocation targetLocation movedPiece
         |> toggleTurn
     }
 
@@ -251,7 +281,7 @@ module Game =
 
     let checks =
       game
-      |> adversarySquares
+      |> squaresOfOpposingPieces
       |> Seq.filter canMoveToKing
       |> List.ofSeq
 

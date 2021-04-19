@@ -305,6 +305,45 @@ let ``Pawn cannot jump forward`` () =
   (game |> Game.movePiece "c2" "c4") =! Error "move c2-c4 not allowed: c3 occupied"
 
 [<Fact>]
+let ``Pawn can capture "en passant"`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 7 "➖➖➖➖➖♟➖➖"
+    |> addRank 6 "➖➖➖➖➖➖➖➖"
+    |> addRank 5 "➖➖➖➖♙➖➖➖"
+    |> addRank 1 "➖➖➖➖➖♔➖➖"
+    |> Game.toggleTurn
+
+  let actual =
+    monad' {
+      // Black pawn makes a 2-square move (to f5)
+      let! game' = game |> Game.movePiece "f7" "f5"
+
+      // White pawn capture it
+      return! game' |> Game.movePiece "e5" "f6"
+    }
+
+  let expected =
+    monad' {
+      // Black pawn makes a 1-square move (to f6)
+      let! game' = game |> Game.movePiece "f7" "f6"
+
+      // White pawn capture it
+      let! game'' = game' |> Game.movePiece "e5" "f6"
+
+      // Adjust logs
+      let logs =
+        match game''.Moves with
+        | [m1; m2] -> [{ m1 with To = "f5" }; m2] // f5 instead of f6
+        | _ -> failwith "Expecting 2 moves logged"
+      return { game'' with Moves = logs }
+    }
+
+  actual =! expected
+
+[<Fact>]
 let ``Promote black pawn moved to 1th rank`` () =
   let game =
     emptyGame
@@ -320,7 +359,7 @@ let ``Promote black pawn moved to 1th rank`` () =
     |> addRank 8 "➖➖➖➖➖♚➖➖"
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖♛➖➖➖♔➖➖"
-    |> Game.logMove "b2" "b1"
+    |> Game.logMove "b2" "b1" (ColoredPiece.parse '♟')
 
   (game |> Game.movePiece "b2" "b1") =! Ok expected
 
@@ -340,7 +379,7 @@ let ``Promote white pawn moved to 8th rank`` () =
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖➖➖➖♔➖➖"
     |> Game.toggleTurn
-    |> Game.logMove "a7" "a8"
+    |> Game.logMove "a7" "a8" (ColoredPiece.parse '♙')
 
   (game |> Game.movePiece "a7" "a8") =! Ok expected
 
@@ -452,12 +491,12 @@ let ``Perform castling move`` () =
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
     |> addRank 8 "♜➖❓➖♚➖❓♜"
     |> addRank 1 "♖➖❓➖♔➖❓♖"
-  (game |> Game.movePiece "e1" "c1") =! Ok (game |> setRank 1 "➖➖♔♖➖➖➖♖" |> Game.toggleTurn |> Game.logMove "e1" "c1")
-  (game |> Game.movePiece "e1" "g1") =! Ok (game |> setRank 1 "♖➖➖➖➖♖♔➖" |> Game.toggleTurn |> Game.logMove "e1" "g1")
+  (game |> Game.movePiece "e1" "c1") =! Ok (game |> setRank 1 "➖➖♔♖➖➖➖♖" |> Game.toggleTurn |> Game.logMove "e1" "c1" (ColoredPiece.parse '♔'))
+  (game |> Game.movePiece "e1" "g1") =! Ok (game |> setRank 1 "♖➖➖➖➖♖♔➖" |> Game.toggleTurn |> Game.logMove "e1" "g1" (ColoredPiece.parse '♔'))
 
   let game = game |> Game.toggleTurn
-  (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖➖♚♜➖➖➖♜" |> Game.toggleTurn |> Game.logMove "e8" "c8")
-  (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn |> Game.logMove "e8" "g8")
+  (game |> Game.movePiece "e8" "c8") =! Ok (game |> setRank 8 "➖➖♚♜➖➖➖♜" |> Game.toggleTurn |> Game.logMove "e8" "c8" (ColoredPiece.parse '♚'))
+  (game |> Game.movePiece "e8" "g8") =! Ok (game |> setRank 8 "♜➖➖➖➖♜♚➖" |> Game.toggleTurn |> Game.logMove "e8" "g8" (ColoredPiece.parse '♚'))
 
 [<Fact>]
 let ``Reject castling given king is currently in check`` () =

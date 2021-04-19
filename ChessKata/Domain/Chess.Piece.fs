@@ -36,4 +36,15 @@ module ColoredPiece =
   let parse (symbol: PieceSymbol) =
     match tryParse symbol with
     | Some square -> square
-    | None -> failwith "invalid coordinate"
+    | None -> invalidArg (nameof symbol) $"Unknown symbol {symbol}"
+
+module ColoredPiecePatterns =
+  let (|OpposingPieceOf|_|) player { Color = targetColor } =
+    match player = targetColor with
+    | false -> Some OpposingPieceOf
+    | true  -> None
+
+  let (|OwnPieceOf|_|) player { Color = targetColor } =
+    match player = targetColor with
+    | true  -> Some OwnPieceOf
+    | false -> None

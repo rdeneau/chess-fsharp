@@ -73,24 +73,32 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
   let game =
     ranks |> List.fold (fun game (rankNum, symbols) -> game |> addRank rankNum symbols) { emptyGame with Turn = turn }
 
+  let pieceToMove =
+    game.Board |> Map.pick (fun k v -> if k.Notation = pieceSquare then Some v else None)
+
   let reachableSquares =
     ranks |> List.fold (fun squares (rankNum, symbols) -> squares |> List.append (reachableInRank rankNum symbols)) []
 
   reachableSquares
   |> List.iter (fun targetSquare ->
-       let result = game |> Game.movePiece pieceSquare targetSquare
+       let result =
+         game |> Game.movePiece pieceSquare targetSquare
        let expected =
-         { game with Moves = [{ From = pieceSquare; To = targetSquare }] }
+         { game with Moves = [{ From = pieceSquare; To = targetSquare; By = pieceToMove }] }
          |> Game.reposition pieceSquare targetSquare
          |> Game.toggleTurn
        result =! Ok expected
-       (result |> Result.map (fun game -> game.Moves)) =! Ok [{ From = pieceSquare; To = targetSquare }]
      )
 
   let notReachableSquares = allSquareNotations |> List.except (pieceSquare::reachableSquares)
   notReachableSquares
   |> List.iter (fun targetSquare ->
        let result = game |> Game.movePiece pieceSquare targetSquare
+       let _ =
+         match result with
+         | Ok _ ->
+           ()
+         | _ -> ()
        (result |> Result.mapError (fun _ -> "")) =! Error ""
      )
 
