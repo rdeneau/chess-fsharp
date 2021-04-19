@@ -11,16 +11,16 @@ let formatSquares squares =
 
 let data =
   let x = TheoryData<SquareNotation, SquareNotation, Color, string, Angle>()
-  x.Add ("e1", "f1", White, "[]", Horizontal KingSide)
-  x.Add ("e1", "g1", White, "[f1]", Horizontal KingSide)
-  x.Add ("e1", "b1", White, "[d1; c1]", Horizontal QueenSide)
-  x.Add ("a1", "e1", White, "[b1; c1; d1]", Horizontal KingSide)
-  x.Add ("a1", "a4", White, "[a2; a3]", Vertical Forward)
-  x.Add ("e5", "e1", White, "[e4; e3; e2]", Vertical Backward)
-  x.Add ("e5", "e1", Black, "[e4; e3; e2]", Vertical Forward)
-  x.Add ("a1", "d4", White, "[b2; c3]", Oblique (KingSide, Forward))
-  x.Add ("d1", "a4", White, "[c2; b3]", Oblique (QueenSide, Forward))
-  x.Add ("d1", "a4", Black, "[c2; b3]", Oblique (QueenSide, Backward))
+  x.Add ("e1", "f1", White, "[]",           Angle.Horizontal KingSide)
+  x.Add ("e1", "g1", White, "[f1]",         Angle.Horizontal KingSide)
+  x.Add ("e1", "b1", White, "[d1; c1]",     Angle.Horizontal QueenSide)
+  x.Add ("a1", "e1", White, "[b1; c1; d1]", Angle.Horizontal KingSide)
+  x.Add ("a1", "a4", White, "[a2; a3]",     Angle.Vertical Forward)
+  x.Add ("e5", "e1", White, "[e4; e3; e2]", Angle.Vertical Backward)
+  x.Add ("e5", "e1", Black, "[e4; e3; e2]", Angle.Vertical Forward)
+  x.Add ("a1", "d4", White, "[b2; c3]", Angle.Diagonal (KingSide, Forward))
+  x.Add ("d1", "a4", White, "[c2; b3]", Angle.Diagonal (QueenSide, Forward))
+  x.Add ("d1", "a4", Black, "[c2; b3]", Angle.Diagonal (QueenSide, Backward))
   x
 
 [<Theory>]
@@ -28,7 +28,7 @@ let data =
 let ``Compute valid path`` startSquare endSquare color expectedInner expectedAngle =
   let result = Square.tryComputePath (startSquare |> Square.parse) (endSquare |> Square.parse) color
   match result with
-  | Some path -> (path.InnerSquares |> formatSquares, path.Angle) =! (expectedInner, expectedAngle)
+  | Some path -> (path.InsidePath |> formatSquares, path.Angle) =! (expectedInner, expectedAngle)
   | None -> failwith "Expected valid path"
 
 [<Theory>]

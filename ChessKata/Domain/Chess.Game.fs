@@ -142,15 +142,21 @@ module Game =
           |> toResult (castlingNotAllowed $"no rook at {castling.RookSquare.Notation}")
       }
 
-    let verifyPawnMoveForward insidePath targetPiece =
+    let verifyPawnMoveForward insidePath nbSquares targetPiece turn =
       monad' {
-        let moveLength = 1 + List.length insidePath
-        let hasNeverMoved = game |> pieceHasNeverMoved pieceLocation
-        do! match moveLength, hasNeverMoved with
-            | 1, _     -> Ok ()
-            | 2, true  -> verifyPathFree insidePath
-            | 2, false -> Error <| moveNotAllowed "pawn has previously moved"
-            | n, _     -> Error <| moveNotAllowed $"pawn cannot move forward on more than 2 squares, here {n}"
+        let { Rank = rank } = Square.parse pieceLocation
+        let hasNeverMoved =
+          match turn, rank with
+          | White, Rank._2
+          | Black, Rank._7 -> true
+          | _              -> false
+
+        do! match nbSquares, hasNeverMoved with
+            | 1<square>, _     -> Ok ()
+            | 2<square>, true  -> verifyPathFree insidePath
+            | 2<square>, false -> Error <| moveNotAllowed "pawn has previously moved"
+            | _                -> Error <| moveNotAllowed "pawn cannot move forward on more than 2 squares"
+
         do! match targetPiece with
             | None   -> Ok ()
             | Some _ -> Error <| moveNotAllowed "forward square occupied and pawn cannot capture forward"
@@ -168,16 +174,18 @@ module Game =
         |> Castling.info
         |> verifyCastling coloredPiece
 
-      | Bishop, Diagonal { InnerSquares = insidePath }
-      | Queen, Diagonal { InnerSquares = insidePath }
-      | Queen, Rectilinear { InnerSquares = insidePath }
-      | Rook, Rectilinear { InnerSquares = insidePath } -> // TODO: rook uniquement horizontal -> ajouter un TU
+      | Bishop, Diagonal  { InsidePath = insidePath }
+      | Queen, Diagonal   { InsidePath = insidePath }
+      | Queen, Horizontal { InsidePath = insidePath }
+      | Queen, Vertical   { InsidePath = insidePath }
+      | Rook, Horizontal  { InsidePath = insidePath }
+      | Rook, Vertical    { InsidePath = insidePath } ->
         verifyPathFree insidePath
 
-      | Pawn, Rectilinear { InnerSquares = insidePath; Angle = Vertical Forward } ->
-        verifyPawnMoveForward insidePath targetPiece
+      | Pawn, Vertical { InsidePath = insidePath } & ForwardBy nbSquares ->
+        verifyPawnMoveForward insidePath nbSquares targetPiece turn
 
-      | Pawn, OneSquare & Diagonal { Angle = Oblique (_, Forward) } -> // TODO: diagonal = oblique !
+      | Pawn, Diagonal _ & ForwardBy 1<square> ->
         match targetPiece with
         | Some { Color = targetColor } when targetColor <> turn -> Ok ()
         | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"

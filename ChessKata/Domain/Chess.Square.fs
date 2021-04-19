@@ -14,15 +14,17 @@ type SquareNotation = string // E.g. "a1"
 
 type Square = { Notation: SquareNotation; File: File; Rank: Rank }
 
+[<Measure>] type square
+
 type Side = QueenSide | KingSide
 type Direction = Backward | Forward
 
 type Angle =
   | Horizontal of Side
   | Vertical of Direction
-  | Oblique of Side * Direction
+  | Diagonal of Side * Direction
 
-type Path = { InnerSquares: Square list; Angle: Angle }
+type Path = { InsidePath: Square list; Angle: Angle }
 
 module Square =
   let tryParse (notation: SquareNotation) =
@@ -81,7 +83,7 @@ module Square =
         | 0, 0 -> None
         | 0, r -> Some (r, Vertical (vertical r color))
         | f, 0 -> Some (f, Horizontal (horizontal f))
-        | f, r when (abs f) = (abs r) -> Some (f, Oblique (horizontal f, vertical r color))
+        | f, r when (abs f) = (abs r) -> Some (f, Diagonal (horizontal f, vertical r color))
         | _ -> None
 
       let fullPath =
@@ -89,5 +91,5 @@ module Square =
           ((abs numberOfSquares) + 1)
           (fun i -> startSquare |> offset (i * sign fileDiff, i * sign rankDiff))
 
-      return { InnerSquares = trimList fullPath; Angle = angle }
+      return { InsidePath = trimList fullPath; Angle = angle }
     }
