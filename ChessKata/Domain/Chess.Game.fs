@@ -12,6 +12,17 @@ type MoveLog = { From: SquareNotation; To: SquareNotation; By: ColoredPiece; }
 type Game = { Board: Map<Square, ColoredPiece>; Turn: Color; Moves: MoveLog list }
 
 module Game =
+  type MoveOk = { Capture: Square option }
+  type MoveError = string
+  type MoveResult = Result<MoveOk, MoveError>
+
+  module MoveResult =
+    let ok () =
+      Ok { Capture = None }
+
+    let withoutCapture result =
+      result |> Result.map (fun _ -> { Capture = None })
+
   let addPiece pieceSymbol squareNotation game : Game =
     let square = squareNotation |> Square.parse
     let piece = pieceSymbol |> ColoredPiece.parse
@@ -144,7 +155,7 @@ module Game =
           |> toResult (castlingNotAllowed $"no rook at {castling.RookSquare.Notation}")
       }
 
-    let verifyPawnCaptureEnPassant player =
+    let verifyPawnCaptureEnPassant player : MoveResult =
       let isOnFifthRank =
         let { Rank = rank } = Square.parse pieceLocation
         match player, rank with
@@ -152,26 +163,27 @@ module Game =
         | Black, Rank._3 -> true
         | _              -> false
 
-      let hasPreviousMove, fromTwoSquareAhead, upToAdjacentSquare =
+      let hasPreviousMove, target, fromTwoSquareAhead, upToAdjacentSquare =
         match game.Moves with
         | { From = from; To = dest; By = { Color = enemy; Piece = Pawn } } :: _ ->
           let isAdjacent = Square.areAdjacent pieceLocation dest
-          let previousMove = computeMove (Square.parse from) (Square.parse dest) enemy
+          let target = Square.parse dest
+          let previousMove = computeMove (Square.parse from) target enemy
           let twoSquareBeforeDest =
             match previousMove with
             | Vertical _ & ForwardBy 2<square> -> true
             | _ -> false
-          true, twoSquareBeforeDest, isAdjacent
+          true, Some target, twoSquareBeforeDest, isAdjacent
         | _ ->
-          false, false, false
+          false, None, false, false
 
       match isOnFifthRank && hasPreviousMove && fromTwoSquareAhead && upToAdjacentSquare with
-      | true -> Ok ()
+      | true -> Ok { Capture = target }
       | _ -> Error <| moveNotAllowed "no piece in diagonal to capture by pawn"
 
-    let verifyPawnMoveDiagonally targetPiece player =
+    let verifyPawnMoveDiagonally targetPiece player : MoveResult =
       match targetPiece with
-      | Some (OpposingPieceOf player) -> Ok () // Capture opposing piece
+      | Some (OpposingPieceOf player) -> MoveResult.ok()
       | _ -> verifyPawnCaptureEnPassant player
 
     let verifyPawnMoveForward insidePath nbSquares targetPiece turn =
@@ -194,17 +206,18 @@ module Game =
             | Some _ -> Error <| moveNotAllowed "forward square occupied and pawn cannot capture forward"
       }
 
-    let verifyPieceMove coloredPiece move targetPiece =
+    let verifyPieceMove coloredPiece move targetPiece : MoveResult =
       let { Color = turn; Piece = piece } = coloredPiece
       match piece, move with
       | Knight, Jump
       | King, OneSquare ->
-        Ok ()
+        MoveResult.ok()
 
       | King, Castling castling ->
         castling
         |> Castling.info
         |> verifyCastling coloredPiece
+        |> MoveResult.withoutCapture
 
       | Bishop, Diagonal  { InsidePath = insidePath }
       | Queen, Diagonal   { InsidePath = insidePath }
@@ -213,14 +226,17 @@ module Game =
       | Rook, Horizontal  { InsidePath = insidePath }
       | Rook, Vertical    { InsidePath = insidePath } ->
         verifyPathFree insidePath
+        |> MoveResult.withoutCapture
 
       | Pawn, Diagonal _ & ForwardBy 1<square> ->
         verifyPawnMoveDiagonally targetPiece turn
 
       | Pawn, Vertical { InsidePath = insidePath } & ForwardBy nbSquares ->
         verifyPawnMoveForward insidePath nbSquares targetPiece turn
+        |> MoveResult.withoutCapture
 
-      | _ -> Error <| moveNotAllowed $"for {piece}"
+      | _ ->
+        Error <| moveNotAllowed $"for {piece}"
 
     let moveRookDuringCastling move board =
       match move with
@@ -242,7 +258,12 @@ module Game =
       let! targetPiece = verifyTarget targetSquare game.Turn
 
       let move = computeMove pieceSquare targetSquare movedPiece.Color
-      do! verifyPieceMove movedPiece move targetPiece
+      let! success = verifyPieceMove movedPiece move targetPiece
+
+      let isNotCapturedSquare k _ =
+        match success.Capture with
+        | Some x -> x <> k
+        | None -> true
 
       let promotedPiece =
         match (movedPiece, targetSquare) with
@@ -253,6 +274,7 @@ module Game =
       let board =
         game.Board
         |> Map.remove pieceSquare
+        |> Map.filter isNotCapturedSquare
         |> Map.add targetSquare promotedPiece
         |> moveRookDuringCastling move
 

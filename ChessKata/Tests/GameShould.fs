@@ -336,7 +336,7 @@ let ``Pawn can capture "en passant"`` () =
       // Adjust logs
       let logs =
         match game''.Moves with
-        | [m1; m2] -> [{ m1 with To = "f5" }; m2] // f5 instead of f6
+        | [m1; m2] -> [m1; { m2 with To = "f5" }] // f5 instead of f6
         | _ -> failwith "Expecting 2 moves logged"
       return { game'' with Moves = logs }
     }
