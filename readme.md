@@ -51,9 +51,9 @@ Move a piece specified by its square to a destination square, verifying the rule
 ## 4. Extra moves *(check or past moves needed)*
 
 - [x] Handle [castling](https://en.wikipedia.org/wiki/Castling)
-- [ ] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
+- [x] Handle pawn capture "[en passant](https://en.wikipedia.org/wiki/En_passant)"
 
 ## 5. Mate
 
-- [ ] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
+- [x] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
 - [ ] Detect [Stalemate](https://en.wikipedia.org/wiki/Stalemate)

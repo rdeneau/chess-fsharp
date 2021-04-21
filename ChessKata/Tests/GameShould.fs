@@ -429,6 +429,21 @@ let ``Indicate black in check twice`` () =
   result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
 
 [<Fact>]
+let ``Indicate black in checkmate with a rook`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 6 "➖➖➖➖➖➖➖➖"
+    |> addRank 5 "➖➖➖➖➖♔➖♚"
+    |> addRank 4 "➖➖➖➖➖➖➖➖"
+    |> addRank 3 "➖➖➖➖➖➖➖➖"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖➖➖♖"
+    |> Game.toggleTurn
+  let result = game |> Game.checkOrMate
+  result =! Some (Mate { Of = Black; By = [square "h1"] })
+
+[<Fact>]
 let ``Indicate white in check but not mate`` () =
   let game =
     emptyGame
@@ -453,6 +468,38 @@ let ``Indicate white in checkmate`` () =
     |> addRank 1 "➖➖➖➖➖➖➖♔"
   let result = game |> Game.checkOrMate
   result =! Some (Mate { Of = White; By = [square "f3"] })
+
+[<Fact>]
+let ``Indicate white in checkmate (Fool's Mate)`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "♜♞♝➖♚♝♞♜"
+    |> addRank 7 "♟♟♟♟➖♟♟♟"
+    |> addRank 6 "➖➖➖➖♟➖➖➖"
+    |> addRank 5 "➖➖➖➖➖➖➖➖"
+    |> addRank 4 "➖➖➖➖➖➖♙♛"
+    |> addRank 3 "➖➖➖➖➖♙➖➖"
+    |> addRank 2 "♙♙♙♙♙➖➖♙"
+    |> addRank 1 "♖♘♗♕♔♗♘♖"
+  let result = game |> Game.checkOrMate
+  result =! Some (Mate { Of = White; By = [square "h4"] })
+
+[<Fact>]
+let ``Indicate white in checkmate (D. Byrne vs. Fischer)`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖♕➖➖➖➖➖➖"
+    |> addRank 7 "➖➖➖➖➖♟♚➖"
+    |> addRank 6 "➖➖♟➖➖➖♟➖"
+    |> addRank 5 "➖♟➖➖♘➖➖♟"
+    |> addRank 4 "➖♝➖➖➖➖➖♙"
+    |> addRank 3 "➖♝♞➖➖➖➖➖"
+    |> addRank 2 "➖➖♜➖➖➖♙➖"
+    |> addRank 1 "➖➖♔➖➖➖➖➖"
+  let result = game |> Game.checkOrMate
+  result =! Some (Mate { Of = White; By = [square "c2"] })
 
 [<Fact>]
 let ``Reject move ending up in own check`` () =

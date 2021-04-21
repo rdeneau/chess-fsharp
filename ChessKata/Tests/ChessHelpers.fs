@@ -104,3 +104,15 @@ let testPieceMove turn pieceSquare (ranks: (int * string) list) =
 
 let testBlackPieceMove = testPieceMove Black
 let testWhitePieceMove = testPieceMove White
+
+let startGame =
+  emptyGame
+  |> addRank 9 "ａｂｃｄｅｆｇｈ"
+  |> addRank 8 "♜♞♝♛♚♝♞♜"
+  |> addRank 7 "♟♟♟♟♟♟♟♟"
+  |> addRank 6 "➖➖➖➖➖➖➖➖"
+  |> addRank 5 "➖➖➖➖➖➖➖➖"
+  |> addRank 4 "➖➖➖➖➖➖➖➖"
+  |> addRank 3 "➖➖➖➖➖➖➖➖"
+  |> addRank 2 "♙♙♙♙♙♙♙♙"
+  |> addRank 1 "♖♘♗♕♔♗♘♖"
