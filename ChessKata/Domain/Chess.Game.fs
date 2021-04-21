@@ -9,6 +9,7 @@ type CheckInfo = { Of: Color; By: Square list }
 type CheckResult =
   | Check of CheckInfo
   | Mate of CheckInfo
+  | Stalemate
 
 type MoveLog = { From: SquareNotation; To: SquareNotation; By: ColoredPiece; }
 
@@ -354,15 +355,20 @@ module Game =
 
     not escapeMoves.IsEmpty
 
-  /// Check if the current player is in check or mate
+  let private detectStalemate game =
+    match hasMoveWhereKingIsNotInCheck game with
+    | true -> None
+    | false -> Some Stalemate
+
+  /// Check if the current player is in check or checkmate or stalemate
   let checkOrMate game : CheckResult option =
-    monad' {
-      let! checkInfo = game |> check
-      let result =
-        game
-        |> hasMoveWhereKingIsNotInCheck
-        |> function
-           | true  -> Check checkInfo
-           | false -> Mate checkInfo
-      return result
-    }
+    let toCheckOrMate checkInfo =
+      game
+      |> hasMoveWhereKingIsNotInCheck
+      |> function
+         | true -> Check checkInfo
+         | false -> Mate checkInfo
+
+    match check game with
+    | Some checkInfo -> checkInfo |> toCheckOrMate |> Some
+    | None -> detectStalemate game

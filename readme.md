@@ -35,7 +35,7 @@ Add a *piece* at a given *square* in the classical 8x8 *board*
 
 Move a piece specified by its square to a destination square, verifying the rules of the game:
 
-- [x] Verify that there is a piece at the given square and of a the **Turn** color, *White* or *Black*
+- [x] Verify that there is a piece at the given square and of the **Turn** color, *White* or *Black*
 - [x] Respect the move allowed for the given piece
 - [x] Handle *Pawn* promoted to *Queen*
 - [x] Handle blockage on the way by another piece
@@ -56,4 +56,4 @@ Move a piece specified by its square to a destination square, verifying the rule
 ## 5. Mate
 
 - [x] Detect [Mate](https://en.wikipedia.org/wiki/Checkmate)
-- [ ] Detect [Stalemate](https://en.wikipedia.org/wiki/Stalemate)
+- [x] Detect [Stalemate](https://en.wikipedia.org/wiki/Stalemate)

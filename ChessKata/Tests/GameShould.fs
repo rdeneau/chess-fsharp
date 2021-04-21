@@ -635,3 +635,38 @@ let ``Reject castling given rook has previously moved`` () =
       |> Game.toggleTurn
       |> Game.movePiece "e1" "c1"
   } =! Error "castling e1-c1 not allowed: rook has previously moved"
+
+[<Fact>]
+let ``Indicate black in stalemate (1)`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖➖➖♚"
+    |> addRank 7 "➖➖➖➖➖♔➖➖"
+    |> addRank 6 "➖➖➖➖➖➖♕➖"
+    |> Game.toggleTurn
+  let result = game |> Game.checkOrMate
+  result =! Some Stalemate
+
+[<Fact>]
+let ``Indicate black in stalemate (2)`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 8 "➖➖➖➖➖♚➖➖"
+    |> addRank 7 "➖➖➖➖➖♙➖➖"
+    |> addRank 6 "➖➖➖➖➖♔➖➖"
+    |> Game.toggleTurn
+  let result = game |> Game.checkOrMate
+  result =! Some Stalemate
+
+[<Fact>]
+let ``Indicate white in stalemate`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 3 "➖➖♚➖➖➖➖➖"
+    |> addRank 2 "➖♜➖➖➖➖➖➖"
+    |> addRank 1 "♔➖➖➖➖➖➖➖"
+  let result = game |> Game.checkOrMate
+  result =! Some Stalemate
