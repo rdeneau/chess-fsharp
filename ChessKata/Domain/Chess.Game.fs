@@ -4,8 +4,11 @@ open ChessKata.Common.Helpers
 open ColoredPiecePatterns
 open FSharpPlus
 
-type CheckResult = Check of CheckInfo // TODO | Mate
- and CheckInfo = { Of: Color; By: Square list }
+type CheckInfo = { Of: Color; By: Square list }
+
+type CheckResult =
+  | Check of CheckInfo
+  | Mate of CheckInfo
 
 type MoveLog = { From: SquareNotation; To: SquareNotation; By: ColoredPiece; }
 
@@ -29,10 +32,18 @@ module Game =
     let board = game.Board |> Map.add square piece
     { game with Board = board }
 
-  let private squaresOfOpposingPieces game =
+  let private freeSquares game =
+    Square.all
+    |> List.filter (fun x -> game.Board |> Map.containsKey x |> not)
+
+  let private squaresOf (player: Color) game =
     game.Board
-    |> Map.filter (fun _ piece -> piece.Color <> game.Turn)
+    |> Map.filter (fun _ piece -> piece.Color = player)
     |> Map.keys
+    |> List.ofSeq
+
+  let private squaresOfOpposingPieces game = game |> squaresOf (Color.toggle game.Turn)
+  let private squaresOfOwnPieces game = game |> squaresOf game.Turn
 
   let logMove pieceLocation targetLocation by game =
     let moveToLog = { From = pieceLocation
@@ -64,7 +75,7 @@ module Game =
   let toggleTurn game : Game =
     { game with Turn = game.Turn |> Color.toggle }
 
-  type CheckPlayerFn = ColoredPiece -> Game -> CheckResult option
+  type CheckPlayerFn = ColoredPiece -> Game -> CheckInfo option
 
   let rec private movePieceWithoutFinalKingCheck (pieceLocation: SquareNotation)
                                                  (targetLocation: SquareNotation)
@@ -136,8 +147,8 @@ module Game =
 
       let verifyNotInCheck () =
         match game |> checkPlayer coloredPiece with
-        | Some (Check check) ->
-          let checkers = check.By |> List.map (fun x -> x.Notation)
+        | Some checkInfo ->
+          let checkers = checkInfo.By |> List.map (fun x -> x.Notation)
           Error <| castlingNotAllowed $"king is currently in check by {checkers}"
         | _ -> Ok ()
 
@@ -292,27 +303,23 @@ module Game =
       | King, None -> failwith $"{king.Color} King not found"
       | piece, _ -> invalidArg (nameof king) $"Expecting King, received {piece}"
 
-    let canMoveToKing adversarySquare : bool =
-      let result =
-        game
-        |> toggleTurn
-        |> movePieceWithoutFinalKingCheck adversarySquare.Notation kingSquare.Notation checkPlayer
-      match result with
-      | Ok _ -> true
-      | _ -> false
+    let canMoveToKing (opposingPiece: Square) : bool =
+      game
+      |> toggleTurn
+      |> movePieceWithoutFinalKingCheck opposingPiece.Notation kingSquare.Notation checkPlayer
+      |> Result.isOk
 
     let checks =
       game
       |> squaresOfOpposingPieces
-      |> Seq.filter canMoveToKing
-      |> List.ofSeq
+      |> List.filter canMoveToKing
 
     match checks with
     | [] -> None
-    | xs -> Some (Check { Of = king.Color; By = xs })
+    | xs -> Some { Of = king.Color; By = xs }
 
-  /// Check if the current player is in check or mate
-  let check game : CheckResult option =
+  /// Check if the current player is just in check (not in checkmate)
+  let private check game : CheckInfo option =
     let king =
       ['♔';'♚']
       |> List.map ColoredPiece.parse
@@ -326,9 +333,36 @@ module Game =
         game |> movePieceWithoutFinalKingCheck pieceLocation targetLocation checkPlayer
       return!
         match newGame |> toggleTurn |> check with
-        | None ->
+        | Some checkInfo ->
+          let checkers = checkInfo.By |> List.map (fun x -> x.Notation)
+          Error $"move {pieceLocation}-{targetLocation} not allowed: ending in check by {checkers}"
+        | _ ->
           Ok newGame
-        | Some (Check check) ->
-          let checkers = check.By |> List.map (fun x -> x.Notation)
-          Error $"move to {targetLocation} not allowed: in check by {checkers}"
+    }
+
+  let private hasMoveWhereKingIsNotInCheck game : bool =
+    let performMove (piece, destination) =
+      game |> movePiece piece.Notation destination.Notation
+
+    let destinations = (freeSquares game) @ (squaresOfOpposingPieces game)
+
+    let escapeMoves =
+      Seq.allPairs (squaresOfOwnPieces game) destinations
+      |> Seq.map (fun x -> ($"{(fst x).Notation}-{(snd x).Notation}", performMove x))
+      |> Seq.filter (snd >> Result.isOk)
+      |> Seq.toList
+
+    not escapeMoves.IsEmpty
+
+  /// Check if the current player is in check or mate
+  let checkOrMate game : CheckResult option =
+    monad' {
+      let! checkInfo = game |> check
+      let result =
+        game
+        |> hasMoveWhereKingIsNotInCheck
+        |> function
+           | true  -> Check checkInfo
+           | false -> Mate checkInfo
+      return result
     }

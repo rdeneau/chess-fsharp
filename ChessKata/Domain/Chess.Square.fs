@@ -42,6 +42,10 @@ module Square =
     | Some square -> square
     | None -> failwith "invalid coordinate"
 
+  let all =
+    List.allPairs [ 'a' .. 'h' ] [ 1 .. 8 ]
+    |> List.map (fun (file, rank) -> parse $"{file}{rank}")
+
   let create file rank =
     {
       Notation = $"{file}{int rank}"

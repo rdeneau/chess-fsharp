@@ -395,7 +395,7 @@ let ``Indicate no checks`` () =
     |> addRank 2 "➖➖♙➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
     |> Game.toggleTurn
-  let result = game |> Game.check
+  let result = game |> Game.checkOrMate
   result =! None
 
 [<Fact>]
@@ -410,7 +410,7 @@ let ``Indicate black in check once`` () =
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
     |> Game.toggleTurn
-  let result = game |> Game.check
+  let result = game |> Game.checkOrMate
   result =! Some (Check { Of = Black; By = [square "c1"] })
 
 [<Fact>]
@@ -425,11 +425,11 @@ let ``Indicate black in check twice`` () =
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖♖➖♔➖➖➖"
     |> Game.toggleTurn
-  let result = game |> Game.check
+  let result = game |> Game.checkOrMate
   result =! Some (Check { Of = Black; By = [square "c1"; square "f3"] })
 
 [<Fact>]
-let ``Indicate white in check`` () =
+let ``Indicate white in check but not mate`` () =
   let game =
     emptyGame
     |> addRank 9 "ａｂｃｄｅｆｇｈ"
@@ -439,8 +439,20 @@ let ``Indicate white in check`` () =
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖➖➖➖➖➖"
     |> addRank 1 "➖➖➖➖♔➖➖➖"
-  let result = game |> Game.check
+  let result = game |> Game.checkOrMate
   result =! Some (Check { Of = White; By = [square "e6"] })
+
+[<Fact>]
+let ``Indicate white in checkmate`` () =
+  let game =
+    emptyGame
+    |> addRank 9 "ａｂｃｄｅｆｇｈ"
+    |> addRank 4 "➖➖➖➖➖➖➖➖"
+    |> addRank 3 "➖➖➖➖♝♝➖♚"
+    |> addRank 2 "➖➖➖➖➖➖➖➖"
+    |> addRank 1 "➖➖➖➖➖➖➖♔"
+  let result = game |> Game.checkOrMate
+  result =! Some (Mate { Of = White; By = [square "f3"] })
 
 [<Fact>]
 let ``Reject move ending up in own check`` () =
@@ -453,8 +465,8 @@ let ``Reject move ending up in own check`` () =
     |> addRank 3 "➖➖➖➖➖➖➖➖"
     |> addRank 2 "➖➖➖➖➖♗➖➖"
     |> addRank 1 "➖➖➖➖➖♔➖➖"
-  (game |> Game.movePiece "f1" "e1") =! Error "move to e1 not allowed: in check by [e6]" // King puts himself in check
-  (game |> Game.movePiece "f2" "g3") =! Error "move to g3 not allowed: in check by [f6]" // Bishop move puts its king in check
+  (game |> Game.movePiece "f1" "e1") =! Error "move f1-e1 not allowed: ending in check by [e6]" // King puts himself in check
+  (game |> Game.movePiece "f2" "g3") =! Error "move f2-g3 not allowed: ending in check by [f6]" // Bishop move puts its king in check
 
 [<Fact>]
 let ``Reject castling given missing rook`` () =

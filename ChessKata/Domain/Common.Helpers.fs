@@ -30,3 +30,12 @@ let trimList =
   function
   | [] | [_] | [_;_] -> []
   | ls -> ls |> List.tail |> List.rev |> List.tail |> List.rev
+
+module Result =
+  let isOk = function
+    | Ok _    -> true
+    | Error _ -> false
+
+  let value = function
+    | Ok x    -> x
+    | Error _ -> failwith "no value in Error case"
